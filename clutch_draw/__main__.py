@@ -1,6 +1,8 @@
 import pygame
 from pathlib import Path
 
+from clutch_draw.ui.buttons import create_button
+
 RESOURCES_PATH = Path(__file__).parent.parent / "resources"
 FONTS_PATH = RESOURCES_PATH / "fonts"
 
@@ -52,22 +54,6 @@ def main():
 
         pygame.display.flip()  # Refresh on-screen display
         clock.tick(60)
-
-
-def create_button(font: pygame.font.Font, text: str) -> pygame.Surface:
-    width = 200
-    height = 75
-    surface = pygame.Surface((width, height))
-    surface.fill(pygame.Color(255, 0, 0))
-    text_surface = font.render(text, True, pygame.Color(0, 0, 0))
-    surface.blit(
-        text_surface,
-        (
-            width // 2 - text_surface.get_width() // 2,
-            height // 2 - text_surface.get_height() // 2,
-        ),
-    )
-    return surface
 
 
 if __name__ == "__main__":
