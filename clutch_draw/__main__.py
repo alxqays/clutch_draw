@@ -54,12 +54,7 @@ def main():
                 if event.type == pygame.MOUSEMOTION:
                     mouse_x, mouse_y = event.pos
                 if event.type == pygame.MOUSEBUTTONUP:
-                    mouse_x, mouse_y = event.pos
-                    _, _, button_width, button_height = play_button.get_rect()
-                    if (
-                        play_button_x <= mouse_x <= play_button_x + button_width
-                        and play_button_y <= mouse_y <= play_button_y + button_height
-                    ):
+                    if mouse_inside(event, play_button, play_button_x, play_button_y):
                         current_state = GameState.GAME_SETUP_SCREEN
 
             # Do logical updates here.
@@ -77,16 +72,33 @@ def main():
                 if event.type == pygame.MOUSEMOTION:
                     mouse_x, mouse_y = event.pos
                 if event.type == pygame.MOUSEBUTTONUP:
-                    mouse_x, mouse_y = event.pos
-                    _, _, button_width, button_height = back_button.get_rect()
-                    if (
-                        back_button_x <= mouse_x <= back_button_x + button_width
-                        and back_button_y <= mouse_y <= back_button_y + button_height
-                    ):
+                    if mouse_inside(event, back_button, back_button_x, back_button_y):
                         current_state = GameState.MAIN_MENU_SCREEN
 
         pygame.display.flip()  # Refresh on-screen display
         clock.tick(60)
+
+
+def mouse_inside(
+    event: pygame.event.Event,
+    surface: pygame.Surface,
+    surface_x: int,
+    surface_y: int,
+) -> bool:
+    mouse_x, mouse_y = event.pos
+    _, _, width, height = surface.get_rect()
+    return inside_rect(
+        mouse_x,
+        mouse_y,
+        surface_x,
+        surface_y,
+        width,
+        height,
+    )
+
+
+def inside_rect(x: int, y: int, left: int, top: int, width: int, height: int) -> bool:
+    return left <= x <= left + width and top <= y <= top + height
 
 
 if __name__ == "__main__":
