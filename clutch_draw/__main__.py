@@ -43,7 +43,7 @@ def main():
                 events,
             )
 
-        if current_state == GameState.GAME_SETUP_SCREEN:
+        elif current_state == GameState.GAME_SETUP_SCREEN:
             current_state = screen_game_setup(
                 current_state,
                 screen_width,
@@ -53,7 +53,7 @@ def main():
                 events,
             )
 
-        if current_state == GameState.CREDITS_SCREEN:
+        elif current_state == GameState.CREDITS_SCREEN:
             current_state = screen_credits(
                 current_state,
                 screen_width,
@@ -63,7 +63,7 @@ def main():
                 events,
             )
 
-        if current_state == GameState.OPTIONS_SCREEN:
+        elif current_state == GameState.OPTIONS_SCREEN:
             current_state = screen_options(
                 current_state,
                 screen_width,
