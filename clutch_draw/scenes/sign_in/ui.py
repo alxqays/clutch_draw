@@ -1,6 +1,7 @@
 from typing import Optional
 from pygame_gui import UIManager
-from pygame_gui.elements import UITextEntryLine
+from pygame_gui.core import ObjectID
+from pygame_gui.elements import UITextEntryLine, UILabel
 from clutch_draw.game_state import GameState
 
 from pygame import MOUSEBUTTONUP, Rect, Surface, Color
@@ -24,8 +25,44 @@ class SignInScreen:
         font_apocalypse: Font,
         manager: UIManager,
     ):
+        sign_in_box_width = 350
+        sign_in_box_height = 50
+
+        username_input_x = screen_width // 2 - sign_in_box_width // 2
+        username_input_y = screen_height // 2 - sign_in_box_height // 2 + 100
+        self.username_input_label = UILabel(
+            relative_rect=Rect(
+                (username_input_x - sign_in_box_width // 2, username_input_y),
+                (-1, sign_in_box_height),
+            ),
+            text="Username:",
+            manager=manager,
+        )
+
         self.username_input = UITextEntryLine(
-            relative_rect=Rect((100, 100), (200, 50)), manager=manager
+            relative_rect=Rect(
+                (username_input_x, username_input_y),
+                (sign_in_box_width, sign_in_box_height),
+            ),
+            manager=manager,
+        )
+
+        password_input_x = screen_width // 2 - sign_in_box_width // 2
+        password_input_y = screen_height // 2 - sign_in_box_height // 2 + 150
+        self.password_input_label = UILabel(
+            relative_rect=Rect(
+                (password_input_x - sign_in_box_width // 2, password_input_y),
+                (-1, sign_in_box_height),
+            ),
+            text="Password:",
+            manager=manager,
+        )
+        self.password_input = UITextEntryLine(
+            relative_rect=Rect(
+                (password_input_x, password_input_y),
+                (sign_in_box_width, sign_in_box_height),
+            ),
+            manager=manager,
         )
         self.screen_width = screen_width
         self.screen_height = screen_height

@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 import pygame
 from pathlib import Path
@@ -28,7 +29,9 @@ def main():
     screen = pygame.display.set_mode((screen_width, screen_height))
     clock = pygame.time.Clock()
     font_apocalypse = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 50)
-    manager = UIManager((screen_width, screen_height))
+    manager = UIManager(
+        (screen_width, screen_height), theme_path="clutch_draw/ui/theme.json"
+    )
 
     welcome_screen = WelcomeScreen(
         screen_width, screen_height, screen, font_apocalypse, manager
