@@ -8,14 +8,21 @@ from pygame.event import Event
 from pygame.font import Font
 
 
-def screen_credits(current_state: GameState, screen_width: int, screen_height: int, screen: Surface, font_apocalypse: Font, events: list[Event]) -> GameState:
+def screen_credits(
+    current_state: GameState,
+    screen_width: int,
+    screen_height: int,
+    screen: Surface,
+    font_apocalypse: Font,
+    events: list[Event],
+) -> GameState:
     screen.fill("darkgreen")
     credits_lines = [
-                "Credits",
-                "",
-                "Developed by: (Your Name)",
-                "Libraries: pygame",
-            ]
+        "Credits",
+        "",
+        "Developed by: (Your Name)",
+        "Libraries: pygame",
+    ]
 
     start_y = screen_height // 4
     for i, line in enumerate(credits_lines):
@@ -35,5 +42,5 @@ def screen_credits(current_state: GameState, screen_width: int, screen_height: i
         if event.type == MOUSEBUTTONUP:
             if mouse_inside(event, back_button, back_button_x, back_button_y):
                 current_state = GameState.MAIN_MENU_SCREEN
-                
+
     return current_state

@@ -8,7 +8,14 @@ from clutch_draw.ui.buttons import create_button
 from clutch_draw.ui.mouse import mouse_inside
 
 
-def screen_options(current_state: GameState, screen_width: int, screen_height: int, screen: Surface, font_apocalypse: Font, events: list[Event]) -> GameState:
+def screen_options(
+    current_state: GameState,
+    screen_width: int,
+    screen_height: int,
+    screen: Surface,
+    font_apocalypse: Font,
+    events: list[Event],
+) -> GameState:
     screen.fill("gray")
     font = Font(None, 74)
     text = font.render("Options Screen - Coming Soon!", True, Color(0, 0, 0))

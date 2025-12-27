@@ -33,19 +33,49 @@ def main():
                 pygame.quit()
                 raise SystemExit
         if current_state == GameState.MAIN_MENU_SCREEN:
-            current_state = screen_main_menu(current_state, screen_width, screen_height, screen, font_apocalypse, title_text, events)
+            current_state = screen_main_menu(
+                current_state,
+                screen_width,
+                screen_height,
+                screen,
+                font_apocalypse,
+                title_text,
+                events,
+            )
 
         if current_state == GameState.GAME_SETUP_SCREEN:
-            current_state = screen_game_setup(current_state, screen_width, screen_height, screen, font_apocalypse, events)
+            current_state = screen_game_setup(
+                current_state,
+                screen_width,
+                screen_height,
+                screen,
+                font_apocalypse,
+                events,
+            )
 
         if current_state == GameState.CREDITS_SCREEN:
-            current_state = screen_credits(current_state, screen_width, screen_height, screen, font_apocalypse, events)
+            current_state = screen_credits(
+                current_state,
+                screen_width,
+                screen_height,
+                screen,
+                font_apocalypse,
+                events,
+            )
 
         if current_state == GameState.OPTIONS_SCREEN:
-            current_state = screen_options(current_state, screen_width, screen_height, screen, font_apocalypse, events)
+            current_state = screen_options(
+                current_state,
+                screen_width,
+                screen_height,
+                screen,
+                font_apocalypse,
+                events,
+            )
 
         pygame.display.flip()  # Refresh on-screen display
         clock.tick(60)
+
 
 if __name__ == "__main__":
     main()

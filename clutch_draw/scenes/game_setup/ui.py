@@ -7,13 +7,20 @@ from pygame.event import Event
 from pygame.font import Font
 
 
-def screen_game_setup(current_state: GameState, screen_width: int, screen_height: int, screen: Surface, font_apocalypse: Font, events: list[Event]) -> GameState:
+def screen_game_setup(
+    current_state: GameState,
+    screen_width: int,
+    screen_height: int,
+    screen: Surface,
+    font_apocalypse: Font,
+    events: list[Event],
+) -> GameState:
     screen.fill("blue")
     back_button = create_button(font_apocalypse, "Back")
     back_button_x = screen_width // 2 - back_button.get_width() // 2
     back_button_y = screen_height // 2 - back_button.get_height() // 2
     screen.blit(back_button, (back_button_x, back_button_y))
-    
+
     for event in events:
         if event.type == MOUSEMOTION:
             mouse_x, mouse_y = event.pos
