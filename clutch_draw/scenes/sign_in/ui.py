@@ -90,6 +90,11 @@ class SignInScreen:
                 if mouse_inside(
                     event, sign_in_button, sign_in_button_x, sign_in_button_y
                 ):
-                    next_state = GameState.MAIN_MENU_SCREEN
+                    # TODO: Replace with real authentication against a database
+                    if (
+                        self.username_input.get_text() == "olivia"
+                        and self.password_input.get_text() == "123"
+                    ):
+                        next_state = GameState.MAIN_MENU_SCREEN
 
         return next_state
