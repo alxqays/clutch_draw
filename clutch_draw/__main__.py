@@ -6,6 +6,8 @@ from clutch_draw.scenes.credits.ui import screen_credits
 from clutch_draw.scenes.game_setup.ui import screen_game_setup
 from clutch_draw.scenes.main_menu.ui import screen_main_menu
 from clutch_draw.scenes.options.ui import screen_options
+from clutch_draw.scenes.sign_in.ui import screen_sign_in
+from clutch_draw.scenes.sign_up.ui import screen_sign_up
 from clutch_draw.scenes.welcome.ui import screen_welcome
 
 RESOURCES_PATH = Path(__file__).parent.parent / "resources"
@@ -36,6 +38,26 @@ def main():
 
         if current_state == GameState.WELCOME_SCREEN:
             current_state = screen_welcome(
+                current_state,
+                screen_width,
+                screen_height,
+                screen,
+                font_apocalypse,
+                events,
+            )
+
+        elif current_state == GameState.SIGN_IN_SCREEN:
+            current_state = screen_sign_in(
+                current_state,
+                screen_width,
+                screen_height,
+                screen,
+                font_apocalypse,
+                events,
+            )
+
+        elif current_state == GameState.SIGN_UP_SCREEN:
+            current_state = screen_sign_up(
                 current_state,
                 screen_width,
                 screen_height,

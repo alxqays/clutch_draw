@@ -46,8 +46,8 @@ def screen_welcome(
     for event in events:
         if event.type == MOUSEBUTTONUP:
             if mouse_inside(event, sign_in_button, sign_in_button_x, sign_in_button_y):
-                current_state = GameState.MAIN_MENU_SCREEN
+                current_state = GameState.SIGN_IN_SCREEN
             if mouse_inside(event, sign_up_button, sign_up_button_x, sign_up_button_y):
-                current_state = GameState.MAIN_MENU_SCREEN
+                current_state = GameState.SIGN_UP_SCREEN
 
     return current_state
