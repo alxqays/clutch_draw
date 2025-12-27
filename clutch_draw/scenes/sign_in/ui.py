@@ -25,6 +25,13 @@ class SignInScreen:
         font_apocalypse: Font,
         manager: UIManager,
     ):
+
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.screen = screen
+        self.font_apocalypse = font_apocalypse
+        self.manager = manager
+
         sign_in_box_width = 350
         sign_in_box_height = 50
 
@@ -64,11 +71,8 @@ class SignInScreen:
             ),
             manager=manager,
         )
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.screen = screen
-        self.font_apocalypse = font_apocalypse
-        self.manager = manager
+
+        self.error = None
 
     def render(self, events: list[Event]) -> GameState:
         self.screen.fill("gray")
@@ -83,6 +87,13 @@ class SignInScreen:
         sign_in_button_y = self.screen_height - sign_in_button.get_height() - 50
         self.screen.blit(sign_in_button, (sign_in_button_x, sign_in_button_y))
 
+        if self.error:
+            error_font = Font(None, 36)
+            error_text = error_font.render(self.error, True, Color(255, 0, 0))
+            error_x = self.screen_width // 2 - error_text.get_width() // 2
+            error_y = sign_in_button_y - 50
+            self.screen.blit(error_text, (error_x, error_y))
+
         next_state = GameState.SIGN_IN_SCREEN
 
         for event in events:
@@ -91,10 +102,14 @@ class SignInScreen:
                     event, sign_in_button, sign_in_button_x, sign_in_button_y
                 ):
                     # TODO: Replace with real authentication against a database
-                    if (
+                    username_and_password_correct = (
                         self.username_input.get_text() == "olivia"
                         and self.password_input.get_text() == "123"
-                    ):
+                    )
+
+                    if username_and_password_correct:
                         next_state = GameState.MAIN_MENU_SCREEN
+                    else:
+                        self.error = "Invalid username or password."
 
         return next_state
