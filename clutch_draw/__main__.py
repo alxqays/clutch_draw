@@ -1,6 +1,8 @@
 import pygame
 from pathlib import Path
 
+from pygame_gui import UIManager
+
 from clutch_draw.game_state import GameState
 from clutch_draw.scenes.credits.ui import screen_credits
 from clutch_draw.scenes.game_setup.ui import screen_game_setup
@@ -25,16 +27,21 @@ def main():
     clock = pygame.time.Clock()
     font_apocalypse = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 50)
     title_text = font_apocalypse.render("Clutch Draw", True, pygame.Color(0, 0, 0))
+    manager = UIManager((screen_width, screen_height))
 
     # Everything inside the while loop happpens on every frame
 
     while True:
+        time_delta = clock.tick(60) / 1000
+
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
                 print("Got the quit event")
                 pygame.quit()
                 raise SystemExit
+
+            manager.process_events(event)
 
         if current_state == GameState.WELCOME_SCREEN:
             current_state = screen_welcome(
@@ -54,6 +61,7 @@ def main():
                 screen,
                 font_apocalypse,
                 events,
+                manager,
             )
 
         elif current_state == GameState.SIGN_UP_SCREEN:
@@ -107,8 +115,9 @@ def main():
                 events,
             )
 
+        manager.update(time_delta)
+        manager.draw_ui(screen)
         pygame.display.flip()  # Refresh on-screen display
-        clock.tick(60)
 
 
 if __name__ == "__main__":
