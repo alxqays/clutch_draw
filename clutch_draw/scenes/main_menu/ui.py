@@ -2,11 +2,14 @@ from clutch_draw.game_state import GameState
 from clutch_draw.ui.mouse import mouse_inside
 from clutch_draw.ui.buttons import create_button
 
+from pygame.font import Font
+from pygame.surface import Surface
+from pygame.event import Event
 
 import pygame
 
 
-def screen_main_menu(current_state, screen_width, screen_height, screen, font_apocalypse, title_text, events):
+def screen_main_menu(current_state: GameState, screen_width: int, screen_height: int, screen: Surface, font_apocalypse: Font, title_text: Surface, events: list[Event]) -> GameState:
     play_button = create_button(font_apocalypse, "Play")
     options_button = create_button(font_apocalypse, "Options")
     credits_button = create_button(font_apocalypse, "Credits")
