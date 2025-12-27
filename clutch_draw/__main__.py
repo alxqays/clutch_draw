@@ -6,6 +6,7 @@ from clutch_draw.scenes.credits.ui import screen_credits
 from clutch_draw.scenes.game_setup.ui import screen_game_setup
 from clutch_draw.scenes.main_menu.ui import screen_main_menu
 from clutch_draw.scenes.options.ui import screen_options
+from clutch_draw.scenes.welcome.ui import screen_welcome
 
 RESOURCES_PATH = Path(__file__).parent.parent / "resources"
 FONTS_PATH = RESOURCES_PATH / "fonts"
@@ -15,7 +16,7 @@ def main():
     print("Launching Clutch Draw...")
 
     pygame.init()
-    current_state = GameState.MAIN_MENU_SCREEN
+    current_state = GameState.WELCOME_SCREEN
     screen_width = 1280
     screen_height = 720
     screen = pygame.display.set_mode((screen_width, screen_height))
@@ -32,7 +33,18 @@ def main():
                 print("Got the quit event")
                 pygame.quit()
                 raise SystemExit
-        if current_state == GameState.MAIN_MENU_SCREEN:
+
+        if current_state == GameState.WELCOME_SCREEN:
+            current_state = screen_welcome(
+                current_state,
+                screen_width,
+                screen_height,
+                screen,
+                font_apocalypse,
+                events,
+            )
+
+        elif current_state == GameState.MAIN_MENU_SCREEN:
             current_state = screen_main_menu(
                 current_state,
                 screen_width,
