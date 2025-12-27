@@ -7,25 +7,36 @@ from pygame.event import Event
 from pygame.font import Font
 
 
-def screen_game_setup(
-    current_state: GameState,
-    screen_width: int,
-    screen_height: int,
-    screen: Surface,
-    font_apocalypse: Font,
-    events: list[Event],
-) -> GameState:
-    screen.fill("blue")
-    back_button = create_button(font_apocalypse, "Back")
-    back_button_x = screen_width // 2 - back_button.get_width() // 2
-    back_button_y = screen_height // 2 - back_button.get_height() // 2
-    screen.blit(back_button, (back_button_x, back_button_y))
+class GameSetupScreen:
 
-    for event in events:
-        if event.type == MOUSEMOTION:
-            mouse_x, mouse_y = event.pos
-        if event.type == MOUSEBUTTONUP:
-            if mouse_inside(event, back_button, back_button_x, back_button_y):
-                current_state = GameState.MAIN_MENU_SCREEN
+    def __init__(
+        self,
+        screen_width: int,
+        screen_height: int,
+        screen: Surface,
+        font_apocalypse: Font,
+        manager,
+    ):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.screen = screen
+        self.font_apocalypse = font_apocalypse
+        self.manager = manager
 
-    return current_state
+    def render(self, events: list[Event]) -> GameState:
+        self.screen.fill("blue")
+        back_button = create_button(self.font_apocalypse, "Back")
+        back_button_x = self.screen_width // 2 - back_button.get_width() // 2
+        back_button_y = self.screen_height // 2 - back_button.get_height() // 2
+        self.screen.blit(back_button, (back_button_x, back_button_y))
+
+        next_state = GameState.GAME_SETUP_SCREEN
+
+        for event in events:
+            if event.type == MOUSEMOTION:
+                mouse_x, mouse_y = event.pos
+            if event.type == MOUSEBUTTONUP:
+                if mouse_inside(event, back_button, back_button_x, back_button_y):
+                    next_state = GameState.MAIN_MENU_SCREEN
+
+        return next_state

@@ -5,13 +5,13 @@ from pathlib import Path
 from pygame_gui import UIManager
 
 from clutch_draw.game_state import GameState
-from clutch_draw.scenes.credits.ui import screen_credits
-from clutch_draw.scenes.game_setup.ui import screen_game_setup
-from clutch_draw.scenes.main_menu.ui import screen_main_menu
-from clutch_draw.scenes.options.ui import screen_options
+from clutch_draw.scenes.credits.ui import CreditsScreen
+from clutch_draw.scenes.game_setup.ui import GameSetupScreen
+from clutch_draw.scenes.main_menu.ui import MainMenuScreen
+from clutch_draw.scenes.options.ui import OptionsScreen
 from clutch_draw.scenes.sign_in.ui import SignInScreen
-from clutch_draw.scenes.sign_up.ui import screen_sign_up
-from clutch_draw.scenes.welcome.ui import screen_welcome
+from clutch_draw.scenes.sign_up.ui import SignUpScreen
+from clutch_draw.scenes.welcome.ui import WelcomeScreen
 
 RESOURCES_PATH = Path(__file__).parent.parent / "resources"
 FONTS_PATH = RESOURCES_PATH / "fonts"
@@ -28,8 +28,17 @@ def main():
     screen = pygame.display.set_mode((screen_width, screen_height))
     clock = pygame.time.Clock()
     font_apocalypse = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 50)
-    title_text = font_apocalypse.render("Clutch Draw", True, pygame.Color(0, 0, 0))
     manager = UIManager((screen_width, screen_height))
+
+    welcome_screen = WelcomeScreen(
+        screen_width, screen_height, screen, font_apocalypse, manager
+    )
+    sign_in_screen = None
+    sign_up_screen = None
+    main_menu_screen = None
+    game_setup_screen = None
+    options_screen = None
+    credits_screen = None
 
     # Everything inside the while loop happpens on every frame
 
@@ -46,68 +55,25 @@ def main():
             manager.process_events(event)
 
         if current_state == GameState.WELCOME_SCREEN:
-            next_state = screen_welcome(
-                current_state,
-                screen_width,
-                screen_height,
-                screen,
-                font_apocalypse,
-                events,
-            )
+            next_state = welcome_screen.render(events)
 
         elif current_state == GameState.SIGN_IN_SCREEN:
             next_state = sign_in_screen.render(events)
 
         elif current_state == GameState.SIGN_UP_SCREEN:
-            next_state = screen_sign_up(
-                current_state,
-                screen_width,
-                screen_height,
-                screen,
-                font_apocalypse,
-                events,
-            )
+            next_state = sign_up_screen.render(events)
 
         elif current_state == GameState.MAIN_MENU_SCREEN:
-            next_state = screen_main_menu(
-                current_state,
-                screen_width,
-                screen_height,
-                screen,
-                font_apocalypse,
-                title_text,
-                events,
-            )
+            next_state = main_menu_screen.render(events)
 
         elif current_state == GameState.GAME_SETUP_SCREEN:
-            next_state = screen_game_setup(
-                current_state,
-                screen_width,
-                screen_height,
-                screen,
-                font_apocalypse,
-                events,
-            )
+            next_state = game_setup_screen.render(events)
 
         elif current_state == GameState.CREDITS_SCREEN:
-            next_state = screen_credits(
-                current_state,
-                screen_width,
-                screen_height,
-                screen,
-                font_apocalypse,
-                events,
-            )
+            next_state = credits_screen.render(events)
 
         elif current_state == GameState.OPTIONS_SCREEN:
-            next_state = screen_options(
-                current_state,
-                screen_width,
-                screen_height,
-                screen,
-                font_apocalypse,
-                events,
-            )
+            next_state = options_screen.render(events)
         else:
             raise Exception(f"You forgot to handle a game state of {current_state}!")
 
@@ -116,6 +82,60 @@ def main():
 
             if next_state == GameState.SIGN_IN_SCREEN:
                 sign_in_screen = SignInScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse,
+                    manager,
+                )
+
+            if next_state == GameState.WELCOME_SCREEN:
+                welcome_screen = WelcomeScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse,
+                    manager,
+                )
+
+            if next_state == GameState.SIGN_UP_SCREEN:
+                sign_up_screen = SignUpScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse,
+                    manager,
+                )
+
+            if next_state == GameState.MAIN_MENU_SCREEN:
+                main_menu_screen = MainMenuScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse,
+                    manager,
+                )
+
+            if next_state == GameState.GAME_SETUP_SCREEN:
+                game_setup_screen = GameSetupScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse,
+                    manager,
+                )
+
+            if next_state == GameState.OPTIONS_SCREEN:
+                options_screen = OptionsScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse,
+                    manager,
+                )
+
+            if next_state == GameState.CREDITS_SCREEN:
+                credits_screen = CreditsScreen(
                     screen_width,
                     screen_height,
                     screen,
