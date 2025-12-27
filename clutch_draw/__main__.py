@@ -5,6 +5,7 @@ from clutch_draw.game_state import GameState
 from clutch_draw.scenes.credits.ui import screen_credits
 from clutch_draw.scenes.game_setup.ui import screen_game_setup
 from clutch_draw.scenes.main_menu.ui import screen_main_menu
+from clutch_draw.scenes.options.ui import screen_options
 
 RESOURCES_PATH = Path(__file__).parent.parent / "resources"
 FONTS_PATH = RESOURCES_PATH / "fonts"
@@ -39,6 +40,9 @@ def main():
 
         if current_state == GameState.CREDITS_SCREEN:
             current_state = screen_credits(current_state, screen_width, screen_height, screen, font_apocalypse, events)
+
+        if current_state == GameState.OPTIONS_SCREEN:
+            current_state = screen_options(current_state, screen_width, screen_height, screen, font_apocalypse, events)
 
         pygame.display.flip()  # Refresh on-screen display
         clock.tick(60)
