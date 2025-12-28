@@ -29,13 +29,14 @@ def main():
     screen_height = 720
     screen = pygame.display.set_mode((screen_width, screen_height))
     clock = pygame.time.Clock()
-    font_apocalypse = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 50)
+    font_apocalypse_size50 = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 50)
+    font_apocalypse_size15 = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 15)
     manager = UIManager(
         (screen_width, screen_height), theme_path="clutch_draw/ui/theme.json"
     )
 
     welcome_screen = WelcomeScreen(
-        screen_width, screen_height, screen, font_apocalypse, manager
+        screen_width, screen_height, screen, font_apocalypse_size50, manager
     )
     sign_in_screen = None
     sign_up_screen = None
@@ -94,7 +95,7 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
                     manager,
                     database,
                 )
@@ -104,7 +105,7 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
                     manager,
                 )
 
@@ -113,7 +114,7 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
                     manager,
                     database,
                 )
@@ -123,7 +124,7 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
                     manager,
                 )
 
@@ -132,7 +133,7 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
                     manager,
                 )
 
@@ -141,7 +142,7 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
                     manager,
                 )
 
@@ -150,7 +151,7 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
                     manager,
                 )
 
@@ -159,7 +160,8 @@ def main():
                     screen_width,
                     screen_height,
                     screen,
-                    font_apocalypse,
+                    font_apocalypse_size50,
+                    font_apocalypse_size15,
                     manager,
                 )
 
