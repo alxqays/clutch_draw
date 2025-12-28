@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pygame_gui import UIManager
 
+from clutch_draw.db.utils import Database
 from clutch_draw.game_state import GameState
 from clutch_draw.scenes.credits.ui import CreditsScreen
 from clutch_draw.scenes.game_setup.ui import GameSetupScreen
@@ -42,6 +43,7 @@ def main():
     options_screen = None
     credits_screen = None
 
+    database = Database()
     # Everything inside the while loop happpens on every frame
 
     while True:
@@ -107,6 +109,7 @@ def main():
                     screen,
                     font_apocalypse,
                     manager,
+                    database,
                 )
 
             if next_state == GameState.MAIN_MENU_SCREEN:

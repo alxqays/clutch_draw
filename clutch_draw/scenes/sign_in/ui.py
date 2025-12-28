@@ -87,7 +87,7 @@ class SignInScreen:
         sign_in_button_y = self.screen_height - sign_in_button.get_height() - 50
         self.screen.blit(sign_in_button, (sign_in_button_x, sign_in_button_y))
 
-        if self.error:
+        if self.error is not None:
             error_font = Font(None, 36)
             error_text = error_font.render(self.error, True, Color(255, 0, 0))
             error_x = self.screen_width // 2 - error_text.get_width() // 2
