@@ -7,6 +7,7 @@ from pygame_gui import UIManager
 from clutch_draw.db.utils import Database
 from clutch_draw.game_state import GameState
 from clutch_draw.scenes.credits.ui import CreditsScreen
+from clutch_draw.scenes.game.ui import GameScreen
 from clutch_draw.scenes.game_setup.ui import GameSetupScreen
 from clutch_draw.scenes.main_menu.ui import MainMenuScreen
 from clutch_draw.scenes.options.ui import OptionsScreen
@@ -42,6 +43,7 @@ def main():
     game_setup_screen = None
     options_screen = None
     credits_screen = None
+    game_screen = None
 
     database = Database()
     # Everything inside the while loop happpens on every frame
@@ -78,6 +80,9 @@ def main():
 
         elif current_state == GameState.OPTIONS_SCREEN:
             next_state = options_screen.render(events)
+
+        elif current_state == GameState.GAME_SCREEN:
+            next_state = game_screen.render(events)
         else:
             raise Exception(f"You forgot to handle a game state of {current_state}!")
 
@@ -142,6 +147,15 @@ def main():
 
             if next_state == GameState.CREDITS_SCREEN:
                 credits_screen = CreditsScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse,
+                    manager,
+                )
+
+            if next_state == GameState.GAME_SCREEN:
+                game_screen = GameScreen(
                     screen_width,
                     screen_height,
                     screen,
