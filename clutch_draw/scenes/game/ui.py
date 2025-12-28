@@ -8,6 +8,8 @@ from pygame import MOUSEMOTION, MOUSEBUTTONUP, Color, Surface
 from pygame.event import Event
 from pygame.font import Font
 
+from clutch_draw.ui.player import Player
+
 
 class GameScreen:
 
@@ -27,22 +29,11 @@ class GameScreen:
         self.text_font = text_font
         self.manager = manager
 
-    def render(self, events: list[Event]) -> GameState:
-        self.screen.fill("blue")
-        back_button = create_button(self.title_font, "Back")
-        back_button_x = 15
-        back_button_y = 15
-        self.screen.blit(back_button, (back_button_x, back_button_y))
-
-        card_width = 100
-        card_gap = 15
         num_cards = 5
+        our_hand: list[Card] = []
+        opponent_hand: list[Card] = []
 
-        total_card_width = num_cards * card_width + (num_cards - 1) * card_gap
-
-        print(f"Total card width: {total_card_width}")
         for i in range(num_cards):
-
             card = Card(
                 title=f"Card {i + 1}",
                 title_font=self.text_font,
@@ -51,14 +42,25 @@ class GameScreen:
                 background_color=Color(255, 255, 255),
                 title_color=Color(0, 0, 0),
             )
-            card.render(
-                self.screen,
-                x=self.screen_width
-                - total_card_width
-                + i * (card_width + card_gap)
-                - card_gap,
-                y=self.screen_height - card.height,
-            )
+            our_hand.append(card)
+            opponent_hand.append(card)
+
+        self.opponent_player = Player(
+            100, opponent_hand, self.screen_width, self.screen_height
+        )
+        self.our_player = Player(200, our_hand, self.screen_width, self.screen_height)
+
+    def render(self, events: list[Event]) -> GameState:
+        self.screen.fill("blue")
+        take_damage_button = create_button(self.title_font, "Opponent Take Damage")
+        take_damage_button_x = 15
+        take_damage_button_y = 15
+        self.screen.blit(
+            take_damage_button, (take_damage_button_x, take_damage_button_y)
+        )
+
+        self.opponent_player.render(self.screen, x=200, y=100)
+        self.our_player.render(self.screen, x=200, y=450)
 
         next_state = GameState.GAME_SCREEN
 
@@ -66,7 +68,13 @@ class GameScreen:
             if event.type == MOUSEMOTION:
                 mouse_x, mouse_y = event.pos
             if event.type == MOUSEBUTTONUP:
-                if mouse_inside(event, back_button, back_button_x, back_button_y):
-                    next_state = GameState.MAIN_MENU_SCREEN
+                if mouse_inside(
+                    event,
+                    take_damage_button,
+                    take_damage_button_x,
+                    take_damage_button_y,
+                ):
+                    self.opponent_player.take_damage(10)
+                    # next_state = GameState.MAIN_MENU_SCREEN
 
         return next_state
