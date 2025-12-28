@@ -91,6 +91,7 @@ def main():
                     screen,
                     font_apocalypse,
                     manager,
+                    database,
                 )
 
             if next_state == GameState.WELCOME_SCREEN:

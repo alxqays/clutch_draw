@@ -68,3 +68,19 @@ class Database:
         conn.close()
 
         return accounts
+
+    def get_account(self, username: str) -> tuple[str, str] | None:
+        # 1. Connect to a database (creates it if it doesn't exist)
+        conn = sqlite3.connect("clutch_draw.db")
+
+        # 2. Create a cursor (used to run SQL commands)
+        cursor = conn.cursor()
+
+        # 3. Read data
+        cursor.execute("SELECT * FROM accounts WHERE username = ?", (username,))
+        account = cursor.fetchone()  # tuple[int, str, str] | None
+
+        # 4. Close connection
+        conn.close()
+
+        return account

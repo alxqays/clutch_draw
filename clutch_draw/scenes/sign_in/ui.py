@@ -2,6 +2,7 @@ from typing import Optional
 from pygame_gui import UIManager
 from pygame_gui.core import ObjectID
 from pygame_gui.elements import UITextEntryLine, UILabel
+from clutch_draw.db.utils import Database
 from clutch_draw.game_state import GameState
 
 from pygame import MOUSEBUTTONUP, Rect, Surface, Color
@@ -10,9 +11,6 @@ from pygame.event import Event
 
 from clutch_draw.ui.buttons import create_button
 from clutch_draw.ui.mouse import mouse_inside
-
-
-text_input = None
 
 
 class SignInScreen:
@@ -24,6 +22,7 @@ class SignInScreen:
         screen: Surface,
         font_apocalypse: Font,
         manager: UIManager,
+        database: Database,
     ):
 
         self.screen_width = screen_width
@@ -31,6 +30,7 @@ class SignInScreen:
         self.screen = screen
         self.font_apocalypse = font_apocalypse
         self.manager = manager
+        self.database = database
 
         sign_in_box_width = 350
         sign_in_box_height = 50
@@ -101,15 +101,16 @@ class SignInScreen:
                 if mouse_inside(
                     event, sign_in_button, sign_in_button_x, sign_in_button_y
                 ):
-                    # TODO: Replace with real authentication against a database
-                    username_and_password_correct = (
-                        self.username_input.get_text() == "olivia"
-                        and self.password_input.get_text() == "123"
-                    )
+                    account = self.database.get_account(self.username_input.get_text())
+                    if account is None:
+                        self.error = "Username does not exist."
+                        continue
 
-                    if username_and_password_correct:
-                        next_state = GameState.MAIN_MENU_SCREEN
-                    else:
-                        self.error = "Invalid username or password."
+                    _, stored_password = account
+                    if self.password_input.get_text() != stored_password:
+                        self.error = "Invalid password."
+                        continue
+
+                    next_state = GameState.MAIN_MENU_SCREEN
 
         return next_state
