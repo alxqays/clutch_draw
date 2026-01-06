@@ -34,16 +34,28 @@ class GameScreen:
         opponent_hand: list[Card] = []
 
         for i in range(num_cards):
-            card = Card(
-                title=f"Card {i + 1}",
-                title_font=self.text_font,
-                text_font=self.text_font,
-                ability_text=f"Ability text {i + 1}",
-                background_color=Color(255, 255, 255),
-                title_color=Color(0, 0, 0),
+
+            our_hand.append(
+                Card(
+                    title=f"Card {i + 1}",
+                    title_font=self.text_font,
+                    text_font=self.text_font,
+                    ability_text=f"Ability text {i + 1}",
+                    background_color=Color(255, 255, 255),
+                    title_color=Color(0, 0, 0),
+                )
             )
-            our_hand.append(card)
-            opponent_hand.append(card)
+
+            opponent_hand.append(
+                Card(
+                    title=f"Card {i + 1}",
+                    title_font=self.text_font,
+                    text_font=self.text_font,
+                    ability_text=f"Ability text {i + 1}",
+                    background_color=Color(255, 255, 255),
+                    title_color=Color(0, 0, 0),
+                )
+            )
 
         self.opponent_player = Player(
             100, opponent_hand, self.screen_width, self.screen_height
@@ -59,8 +71,8 @@ class GameScreen:
             take_damage_button, (take_damage_button_x, take_damage_button_y)
         )
 
-        self.opponent_player.render(self.screen, x=200, y=100)
-        self.our_player.render(self.screen, x=200, y=450)
+        self.opponent_player.render(self.screen, x=200, y=100, hide_hand=True)
+        self.our_player.render(self.screen, x=200, y=450, hide_hand=False)
 
         next_state = GameState.GAME_SCREEN
 

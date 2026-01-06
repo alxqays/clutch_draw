@@ -15,7 +15,7 @@ class Card:
         title_color: Color,
     ) -> None:
         self.width = 100
-        self.height = 200
+        self.height = 140
 
         self.title = title
         self.title_font = title_font

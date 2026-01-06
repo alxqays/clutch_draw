@@ -1,4 +1,3 @@
-from typing import Optional
 import pygame
 from pathlib import Path
 
@@ -100,15 +99,6 @@ def main():
                     database,
                 )
 
-            if next_state == GameState.WELCOME_SCREEN:
-                welcome_screen = WelcomeScreen(
-                    screen_width,
-                    screen_height,
-                    screen,
-                    font_apocalypse_size50,
-                    manager,
-                )
-
             if next_state == GameState.SIGN_UP_SCREEN:
                 sign_up_screen = SignUpScreen(
                     screen_width,
@@ -117,6 +107,15 @@ def main():
                     font_apocalypse_size50,
                     manager,
                     database,
+                )
+
+            if next_state == GameState.WELCOME_SCREEN:
+                welcome_screen = WelcomeScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse_size50,
+                    manager,
                 )
 
             if next_state == GameState.MAIN_MENU_SCREEN:
