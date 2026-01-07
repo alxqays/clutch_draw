@@ -5,8 +5,8 @@ def create_button(font: pygame.font.Font, text: str) -> pygame.Surface:
     width = 200
     height = 75
     surface = pygame.Surface((width, height))
-    surface.fill(pygame.Color(255, 0, 0))
-    text_surface = font.render(text, True, pygame.Color(0, 0, 0))
+    surface.fill(pygame.Color(0, 0, 0))
+    text_surface = font.render(text, True, pygame.Color(255, 255, 255))
     surface.blit(
         text_surface,
         (

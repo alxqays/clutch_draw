@@ -30,12 +30,19 @@ def main():
     clock = pygame.time.Clock()
     font_apocalypse_size50 = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 50)
     font_apocalypse_size15 = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 15)
+    font_apocalypse_size100 = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 100)
+
     manager = UIManager(
         (screen_width, screen_height), theme_path="clutch_draw/ui/theme.json"
     )
 
     welcome_screen = WelcomeScreen(
-        screen_width, screen_height, screen, font_apocalypse_size50, manager
+        screen_width,
+        screen_height,
+        screen,
+        font_apocalypse_size50,
+        font_apocalypse_size100,
+        manager,
     )
     sign_in_screen = None
     sign_up_screen = None
@@ -115,6 +122,7 @@ def main():
                     screen_height,
                     screen,
                     font_apocalypse_size50,
+                    font_apocalypse_size100,
                     manager,
                 )
 
