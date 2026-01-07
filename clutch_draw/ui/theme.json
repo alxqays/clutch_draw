@@ -6,12 +6,12 @@
     },
     "label": {
         "colours": {
-            "normal_text": "#000000"
+            "normal_text": "#FFFFFF"
         }
     },
     "text_entry_line": {
         "colours": {
-            "normal_text": "#000000",
+            "normal_text": "#FFFFFF",
             "dark_bg": "#5d6169",
             "normal_border": "#000000",
             "selected_text": "#FFFFFF",

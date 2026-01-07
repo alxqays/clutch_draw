@@ -41,9 +41,8 @@ class WelcomeScreen:
 
         self.screen.blit(self.background, (0, 0))
 
-        title_font = self.title_font
-        main_text = title_font.render("Clutch Draw", True, Color(255, 255, 255))
-        border_text = title_font.render("Clutch Draw", True, Color(0, 0, 0))
+        main_text = self.title_font.render("Clutch Draw", True, Color(255, 255, 255))
+        border_text = self.title_font.render("Clutch Draw", True, Color(0, 0, 0))
 
         text_x = self.screen_width // 2 - main_text.get_width() // 2
         text_y = self.screen_height // 2 - main_text.get_height() // 2 - 65

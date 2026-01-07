@@ -10,6 +10,8 @@ from pygame.event import Event
 from clutch_draw.ui.buttons import create_button
 from clutch_draw.ui.mouse import mouse_inside
 
+import pygame
+
 
 class SignUpScreen:
 
@@ -18,25 +20,35 @@ class SignUpScreen:
         screen_width: int,
         screen_height: int,
         screen: Surface,
-        font_apocalypse: Font,
+        font_apocalypse_50: Font,
+        font_apocalypse_100: Font,
         manager: UIManager,
         database: Database,
     ):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.screen = screen
-        self.font_apocalypse = font_apocalypse
+        self.button_font = font_apocalypse_50
+        self.title_font = font_apocalypse_100
         self.manager = manager
         self.database = database
+
+        self.background = pygame.image.load(
+            "resources/images/background.webp"
+        ).convert()
+
+        self.background = pygame.transform.scale(
+            self.background, (screen_width, screen_height)
+        )
 
         sign_up_box_width = 350
         sign_up_box_height = 50
 
         username_input_x = screen_width // 2 - sign_up_box_width // 2
-        username_input_y = screen_height // 2 - sign_up_box_height // 2 - 100
+        username_input_y = screen_height // 2 - sign_up_box_height // 2
         self.username_input_label = UILabel(
             relative_rect=Rect(
-                (username_input_x - sign_up_box_width // 2, username_input_y),
+                (username_input_x - 175 // 2, username_input_y),
                 (-1, sign_up_box_height),
             ),
             text="Username:",
@@ -52,10 +64,10 @@ class SignUpScreen:
         )
 
         password_input_x = screen_width // 2 - sign_up_box_width // 2
-        password_input_y = screen_height // 2 - sign_up_box_height // 2 - 50
+        password_input_y = screen_height // 2 - sign_up_box_height // 2 + 50
         self.password_input_label = UILabel(
             relative_rect=Rect(
-                (password_input_x - sign_up_box_width // 2, password_input_y),
+                (password_input_x - 165 // 2, password_input_y),
                 (-1, sign_up_box_height),
             ),
             text="Password:",
@@ -69,11 +81,11 @@ class SignUpScreen:
             manager=manager,
         )
         verify_password_input_x = screen_width // 2 - sign_up_box_width // 2
-        verify_password_input_y = screen_height // 2 - sign_up_box_height // 2
+        verify_password_input_y = screen_height // 2 - sign_up_box_height // 2 + 100
         self.verify_password_input_label = UILabel(
             relative_rect=Rect(
                 (
-                    verify_password_input_x - sign_up_box_width // 2,
+                    verify_password_input_x - 250 // 2,
                     verify_password_input_y,
                 ),
                 (-1, sign_up_box_height),
@@ -92,23 +104,34 @@ class SignUpScreen:
         self.error = None
 
     def render(self, events: list[Event]) -> GameState:
-        self.screen.fill("gray")
-        font = Font(None, 74)
-        text = font.render("Sign Up", True, Color(0, 0, 0))
-        text_x = self.screen_width // 2 - text.get_width() // 2
-        text_y = 100
-        self.screen.blit(text, (text_x, text_y))
 
-        sign_up_button = create_button(self.font_apocalypse, "Sign Up")
+        self.screen.blit(self.background, (0, 0))
+
+        main_text = self.title_font.render("Sign Up", True, Color(255, 255, 255))
+        border_text = self.title_font.render("Sign Up", True, Color(0, 0, 0))
+
+        text_x = self.screen_width // 2 - main_text.get_width() // 2
+        text_y = self.screen_height // 2 - main_text.get_height() // 2 - 65
+
+        border = 5
+
+        self.screen.blit(border_text, (text_x - border, text_y))  # left
+        self.screen.blit(border_text, (text_x + border, text_y))  # right
+        self.screen.blit(border_text, (text_x, text_y - border))  # top
+        self.screen.blit(border_text, (text_x, text_y + border))  # bottom
+
+        self.screen.blit(main_text, (text_x, text_y))
+
+        sign_up_button = create_button(self.button_font, "Sign Up")
         sign_up_button_x = self.screen_width // 2 - sign_up_button.get_width() // 2
-        sign_up_button_y = self.screen_height - sign_up_button.get_height() - 50
+        sign_up_button_y = self.screen_height - sign_up_button.get_height() - 110
         self.screen.blit(sign_up_button, (sign_up_button_x, sign_up_button_y))
 
         if self.error is not None:
             error_font = Font(None, 36)
-            error_text = error_font.render(self.error, True, Color(255, 0, 0))
+            error_text = error_font.render(self.error, True, Color(255, 255, 255))
             error_x = self.screen_width // 2 - error_text.get_width() // 2
-            error_y = sign_up_button_y - 50
+            error_y = sign_up_button_y - 35
             self.screen.blit(error_text, (error_x, error_y))
 
         next_state = GameState.SIGN_UP_SCREEN
