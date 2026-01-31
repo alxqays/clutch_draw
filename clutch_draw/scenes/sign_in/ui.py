@@ -36,14 +36,6 @@ class SignInScreen:
         self.manager = manager
         self.database = database
 
-        self.background = pygame.image.load(
-            "resources/images/background.webp"
-        ).convert()
-
-        self.background = pygame.transform.scale(
-            self.background, (screen_width, screen_height)
-        )
-
         sign_in_box_width = 350
         sign_in_box_height = 50
 
@@ -88,7 +80,7 @@ class SignInScreen:
 
     def render(self, events: list[Event]) -> GameState:
 
-        self.screen.blit(self.background, (0, 0))
+        self.screen.fill("grey")
 
         main_text = self.title_font.render("Sign In", True, Color(255, 255, 255))
         border_text = self.title_font.render("Sign In", True, Color(0, 0, 0))

@@ -5,7 +5,6 @@ from pygame_gui import UIManager
 
 from clutch_draw.db.utils import Database
 from clutch_draw.game_state import GameState
-from clutch_draw.scenes.credits.ui import CreditsScreen
 from clutch_draw.scenes.game.ui import GameScreen
 from clutch_draw.scenes.game_setup.ui import GameSetupScreen
 from clutch_draw.scenes.main_menu.ui import MainMenuScreen
@@ -49,7 +48,6 @@ def main():
     main_menu_screen = None
     game_setup_screen = None
     options_screen = None
-    credits_screen = None
     game_screen = None
 
     database = Database()
@@ -81,9 +79,6 @@ def main():
 
         elif current_state == GameState.GAME_SETUP_SCREEN:
             next_state = game_setup_screen.render(events)
-
-        elif current_state == GameState.CREDITS_SCREEN:
-            next_state = credits_screen.render(events)
 
         elif current_state == GameState.OPTIONS_SCREEN:
             next_state = options_screen.render(events)
@@ -134,6 +129,7 @@ def main():
                     screen_height,
                     screen,
                     font_apocalypse_size50,
+                    font_apocalypse_size100,
                     manager,
                 )
 
@@ -148,15 +144,6 @@ def main():
 
             if next_state == GameState.OPTIONS_SCREEN:
                 options_screen = OptionsScreen(
-                    screen_width,
-                    screen_height,
-                    screen,
-                    font_apocalypse_size50,
-                    manager,
-                )
-
-            if next_state == GameState.CREDITS_SCREEN:
-                credits_screen = CreditsScreen(
                     screen_width,
                     screen_height,
                     screen,

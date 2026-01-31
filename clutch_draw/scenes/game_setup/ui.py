@@ -25,7 +25,8 @@ class GameSetupScreen:
         self.manager = manager
 
     def render(self, events: list[Event]) -> GameState:
-        self.screen.fill("blue")
+
+        self.screen.fill("grey")
         back_button = create_button(self.title_font, "Back")
         back_button_x = self.screen_width // 2 - back_button.get_width() // 2
         back_button_y = self.screen_height // 2 - back_button.get_height() // 2

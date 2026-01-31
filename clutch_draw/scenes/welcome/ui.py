@@ -29,17 +29,9 @@ class WelcomeScreen:
         self.title_font = title_font
         self.manager = manager
 
-        self.background = pygame.image.load(
-            "resources/images/background.webp"
-        ).convert()
-
-        self.background = pygame.transform.scale(
-            self.background, (screen_width, screen_height)
-        )
-
     def render(self, events: list[Event]) -> GameState:
 
-        self.screen.blit(self.background, (0, 0))
+        self.screen.fill("grey")
 
         main_text = self.title_font.render("Clutch Draw", True, Color(255, 255, 255))
         border_text = self.title_font.render("Clutch Draw", True, Color(0, 0, 0))
@@ -64,6 +56,7 @@ class WelcomeScreen:
             - 10
         )
         sign_in_button_y = self.screen_height - sign_in_button.get_height() - 275
+
         self.screen.blit(sign_in_button, (sign_in_button_x, sign_in_button_y))
 
         sign_up_button = create_button(self.button_font, "Sign Up")
@@ -74,6 +67,7 @@ class WelcomeScreen:
             + 10
         )
         sign_up_button_y = self.screen_height - sign_up_button.get_height() - 275
+
         self.screen.blit(sign_up_button, (sign_up_button_x, sign_up_button_y))
 
         next_state = GameState.WELCOME_SCREEN

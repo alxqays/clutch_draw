@@ -25,9 +25,10 @@ class OptionsScreen:
         self.manager = manager
 
     def render(self, events: list[Event]) -> GameState:
-        self.screen.fill("gray")
+
+        self.screen.fill("grey")
         font = Font(None, 74)
-        text = font.render("Options Screen - Coming Soon!", True, Color(0, 0, 0))
+        text = font.render("Options Screen", True, Color(0, 0, 0))
         text_x = self.screen_width // 2 - text.get_width() // 2
         text_y = self.screen_height // 2 - text.get_height() // 2
         self.screen.blit(text, (text_x, text_y))

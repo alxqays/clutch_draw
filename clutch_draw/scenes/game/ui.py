@@ -63,8 +63,9 @@ class GameScreen:
         self.our_player = Player(200, our_hand, self.screen_width, self.screen_height)
 
     def render(self, events: list[Event]) -> GameState:
-        self.screen.fill("blue")
-        take_damage_button = create_button(self.title_font, "Opponent Take Damage")
+
+        self.screen.fill("grey")
+        take_damage_button = create_button(self.title_font, "Take Damage")
         take_damage_button_x = 15
         take_damage_button_y = 15
         self.screen.blit(
