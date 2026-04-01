@@ -148,6 +148,7 @@ def main():
                     screen_height,
                     screen,
                     font_apocalypse_size50,
+                    font_apocalypse_size100,
                     manager,
                 )
 

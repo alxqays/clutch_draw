@@ -36,8 +36,8 @@ class MainMenuScreen:
 
         self.screen.fill("grey")
 
-        title_text = self.title_font.render("Main Menu", True, Color(0, 0, 0))
-        border_text = self.title_font.render("Main Menu", True, Color(255, 255, 255))
+        title_text = self.title_font.render("Main Menu", True, Color(255, 255, 255))
+        border_text = self.title_font.render("Main Menu", True, Color(0, 0, 0))
 
         title_x = self.screen_width // 2 - title_text.get_width() // 2
         title_y = self.screen_height // 2 - title_text.get_height() // 2 - 65

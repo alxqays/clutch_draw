@@ -29,12 +29,12 @@ class GameSetupScreen:
         self.screen.fill("grey")
         back_button = create_button(self.title_font, "Back")
         back_button_x = self.screen_width // 2 - back_button.get_width() // 2
-        back_button_y = self.screen_height // 2 - back_button.get_height() // 2
+        back_button_y = self.screen_height // 2 - back_button.get_height() // 2 + 265
         self.screen.blit(back_button, (back_button_x, back_button_y))
 
         play_button = create_button(self.title_font, "Play")
         play_button_x = self.screen_width // 2 - play_button.get_width() // 2
-        play_button_y = self.screen_height // 2 - play_button.get_height() // 2 - 100
+        play_button_y = self.screen_height // 2 - play_button.get_height() // 2
         self.screen.blit(play_button, (play_button_x, play_button_y))
 
         next_state = GameState.GAME_SETUP_SCREEN

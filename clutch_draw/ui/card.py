@@ -13,6 +13,8 @@ class Card:
         ability_text: str,
         background_color: Color,
         title_color: Color,
+        category: str,
+        value: int,
     ) -> None:
         self.width = 100
         self.height = 140
@@ -23,6 +25,9 @@ class Card:
         self.ability_text = ability_text
         self.color = background_color
         self.title_color = title_color
+
+        self.category = category
+        self.value = value
 
     def render(self, screen: Surface, x: int, y: int) -> None:
         card_surface = Surface((self.width, self.height))
