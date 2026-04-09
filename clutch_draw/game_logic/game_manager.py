@@ -54,36 +54,14 @@ class GameManager:
             )
             print("--------")
 
-    def draw_card(self, category):
-        valid_cards = [
-            c for c in self.deck if c.category == category
-        ]  # only draw cards of the same category as the card that was played.
-        chosen = random.choice(
-            valid_cards
-        )  # randomly selects a card from the valid cards.
-        self.deck.remove(
-            chosen
-        )  # removes the card from the deck so that no duplicates exist.
-        return chosen  # returns the drawn card to be added to the player's hand.
-
     def take_turn(self, player, opponent, card):
         self.play_card(
             player, opponent, card
         )  # plays the selected card and applies its effects.
 
-        player.hand.remove(card)  # removes the played card from the player's hand.
-        self.deck.append(card)  # returns the played card to the deck.
-
-        new_card = self.draw_card(
-            card.category
-        )  # draws a new card of the same category to replace the one that was played.
-        player.hand.append(new_card)  # adds the drawn card to the player's hand.
-
         self.turn = (
             "ai" if self.turn == "player" else "player"
         )  # switches the turn to the other player.
-
-        return new_card  # reveals the new card that was drawn to the player.
 
     def ai_turn(self):
         card = random.choice(
