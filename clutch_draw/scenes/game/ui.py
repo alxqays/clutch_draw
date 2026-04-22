@@ -12,6 +12,20 @@ from pygame.font import Font
 from clutch_draw.ui.player import Player
 import random
 
+from clutch_draw.db.utils import Database
+
+
+def calculate_level(xp):
+    level = 1
+    xp_needed = 100
+
+    while xp >= xp_needed:
+        xp -= xp_needed
+        level += 1
+        xp_needed += 50  # increasing difficulty
+
+    return level, xp_needed
+
 
 class GameScreen:
 
@@ -23,6 +37,9 @@ class GameScreen:
         title_font: Font,
         text_font: Font,
         manager: UIManager,
+        user_data: dict,
+        mode="casual",
+        rank=None,
     ):
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -31,6 +48,8 @@ class GameScreen:
         self.text_font = text_font
         self.small_font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 12)
         self.manager = manager
+        self.mode = mode
+        self.rank = rank
 
         self.deck = self.create_deck()
         self.card_backs = {
@@ -88,9 +107,28 @@ class GameScreen:
         self.next_turn_phase = "turn_transition"
         self.transition_text = "Your Turn"
         self.transition_timer = 0
-
         self.transition_done = False
         self.current_turn = "player"
+
+        self.game_over = False
+        self.game_result = None
+        self.xp_gained = 0
+        self.results_processed = False
+
+        self.username = user_data["username"]
+        self.xp = user_data["xp"]
+        self.level = user_data["level"]
+        self.wins = user_data["wins"]
+        self.losses = user_data["losses"]
+
+        _, self.xp_to_next = calculate_level(self.xp)
+
+        self.menu_button_rect = pygame.Rect(
+            self.screen_width // 2 - 100,
+            self.screen_height // 2 + 80,
+            200,
+            60,
+        )
 
     def create_deck(self):
         return [
@@ -251,7 +289,24 @@ class GameScreen:
 
     def render(self, events: list[Event]) -> GameState:
 
+        if self.game_over:
+            for event in events:
+                if event.type == MOUSEBUTTONUP:
+                    if self.menu_button_rect.collidepoint(event.pos):
+                        return GameState.MAIN_MENU_SCREEN
+
         self.screen.fill("grey")
+
+        font = pygame.font.Font("resources/fonts/Apocalypse.ttf")
+
+        mode_text = f"{self.mode.upper()}"
+
+        if self.mode == "competitive":
+            mode_text += f" ({self.rank.upper()})"
+
+        text_surface = font.render(mode_text, True, (255, 255, 255))
+
+        self.screen.blit(text_surface, (20, 20))
 
         card_width = 100
         card_gap = 15
@@ -288,452 +343,464 @@ class GameScreen:
 
         # State Machine
 
-        if self.turn_phase == "dealing":
-            self.animation_timer += 1
+        if not self.game_over:
 
-            if self.animation_timer >= 15:
-                if self.deal_index < 5:
-                    self.our_player.hand.append(self.our_starting_hand[self.deal_index])
-                    self.opponent_player.hand.append(
-                        self.opponent_starting_hand[self.deal_index]
+            if self.turn_phase == "dealing":
+                self.animation_timer += 1
+
+                if self.animation_timer >= 15:
+                    if self.deal_index < 5:
+                        self.our_player.hand.append(
+                            self.our_starting_hand[self.deal_index]
+                        )
+                        self.opponent_player.hand.append(
+                            self.opponent_starting_hand[self.deal_index]
+                        )
+                        self.deal_index += 1
+                        self.animation_timer = 0
+                    else:
+                        self.turn_phase = "player_idle"
+                        self.animation_timer = 0
+
+            elif self.turn_phase == "player_idle":
+                for event in events:
+                    if event.type == MOUSEBUTTONUP:
+                        mouse_x, mouse_y = event.pos
+
+                        for card, x, y in self.our_player.card_positions:
+                            rect = pygame.Rect(x, y, 100, 140)
+
+                            if rect.collidepoint(mouse_x, mouse_y):
+                                self.active_card = card
+                                self.active_card_pos = (x, y)
+                                self.our_player.hand.remove(card)
+
+                                self.last_played_category = card.category
+
+                                self.turn_phase = "player_animating"
+                                self.animation_timer = 0
+                                break
+
+            elif self.turn_phase == "player_animating":
+                self.animation_timer += 1
+                progress = min(self.animation_timer / self.animation_duration, 1)
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                x = self.active_card_pos[0] + (cx - self.active_card_pos[0]) * progress
+                y = self.active_card_pos[1] + (cy - self.active_card_pos[1]) * progress
+
+                self.render_on_top = (self.active_card, int(x), int(y), 2.2)
+
+                if progress >= 1:
+                    self.turn_phase = "player_showing"
+                    self.animation_timer = 0
+
+            elif self.turn_phase == "player_showing":
+                self.animation_timer += 1
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                self.render_on_top = (self.active_card, cx, cy, 2.2)
+
+                if self.animation_timer >= 35:
+                    self.turn_phase = "player_pause"
+                    self.animation_timer = 0
+
+            elif self.turn_phase == "player_pause":
+                self.animation_timer += 1
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                self.render_on_top = (self.active_card, cx, cy, 2.2)
+
+                if self.animation_timer >= 30:
+                    self.game_manager.play_card(
+                        self.our_player, self.opponent_player, self.active_card
                     )
-                    self.deal_index += 1
-                    self.animation_timer = 0
-                else:
-                    self.turn_phase = "player_idle"
+                    self.turn_phase = "player_to_deck"
                     self.animation_timer = 0
 
-        elif self.turn_phase == "player_idle":
-            for event in events:
-                if event.type == MOUSEBUTTONUP:
-                    mouse_x, mouse_y = event.pos
+            elif self.turn_phase == "player_to_deck":
+                self.animation_timer += 1
+                progress = min(self.animation_timer / self.animation_duration, 1)
 
-                    for card, x, y in self.our_player.card_positions:
-                        rect = pygame.Rect(x, y, 100, 140)
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
 
-                        if rect.collidepoint(mouse_x, mouse_y):
-                            self.active_card = card
-                            self.active_card_pos = (x, y)
-                            self.our_player.hand.remove(card)
+                x = cx + (deck_x - cx) * progress
+                y = cy + (deck_y - cy) * progress
 
-                            self.last_played_category = card.category
+                self.render_on_top = (self.active_card, int(x), int(y), 2.2)
 
-                            self.turn_phase = "player_animating"
-                            self.animation_timer = 0
-                            break
+                if progress >= 1:
+                    if self.active_card is not None:
+                        self.deck.append(self.active_card)
+                    self.active_card = None
 
-        elif self.turn_phase == "player_animating":
-            self.animation_timer += 1
-            progress = min(self.animation_timer / self.animation_duration, 1)
+                    self.current_turn = "ai"
 
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
+                    self.turn_phase = "turn_transition"
+                    self.transition_text = "Opponent's Turn"
+                    self.next_turn_phase = (
+                        "ai_animating" if self.first_round else "ai_draw_anim"
+                    )
+                    self.transition_timer = 0
 
-            x = self.active_card_pos[0] + (cx - self.active_card_pos[0]) * progress
-            y = self.active_card_pos[1] + (cy - self.active_card_pos[1]) * progress
+                    self.draw_timer = 0
+                    self.ai_drawn_card = None
 
-            self.render_on_top = (self.active_card, int(x), int(y), 2.2)
+            elif self.turn_phase == "turn_transition":
 
-            if progress >= 1:
-                self.turn_phase = "player_showing"
-                self.animation_timer = 0
+                self.transition_timer += 1
 
-        elif self.turn_phase == "player_showing":
-            self.animation_timer += 1
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
+                if self.transition_timer >= 90:
+                    self.transition_done = True
 
-            self.render_on_top = (self.active_card, cx, cy, 2.2)
+                if self.transition_done:
+                    self.transition_done = False
+                    self.transition_timer = 0
 
-            if self.animation_timer >= 35:
-                self.turn_phase = "player_pause"
-                self.animation_timer = 0
+                    if self.next_turn_phase == "player_draw":
+                        self.turn_phase = "player_pre_draw"
+                    else:
+                        self.turn_phase = self.next_turn_phase
 
-        elif self.turn_phase == "player_pause":
-            self.animation_timer += 1
+            elif self.turn_phase == "player_pre_draw":
+                self.animation_timer += 1
 
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
+                if self.animation_timer >= 2:
+                    self.turn_phase = "player_draw"
+                    self.animation_timer = 0
 
-            self.render_on_top = (self.active_card, cx, cy, 2.2)
+            # =========================
+            # AI DRAW (only after round 1)
+            # =========================
 
-            if self.animation_timer >= 30:
-                self.game_manager.play_card(
-                    self.our_player, self.opponent_player, self.active_card
+            elif self.turn_phase == "ai_draw_anim":
+
+                if self.draw_timer == 0:
+                    self.ai_drawn_card = None
+
+                if self.ai_drawn_card is None:
+                    available = [
+                        c
+                        for c in self.deck
+                        if c.category == self.ai_last_played_category
+                    ]
+
+                    if not available:
+                        available = self.deck
+
+                    if available:
+                        self.ai_drawn_card = random.choice(available)
+                        self.deck.remove(self.ai_drawn_card)
+                        self.draw_pos = (deck_x, deck_y)
+
+                self.draw_timer += 1
+                progress = min(self.draw_timer / 55, 1)
+
+                scale = 1.5
+
+                card_w = int(100 * scale)
+                card_h = int(140 * scale)
+
+                cx = self.screen_width // 2
+                cy = self.screen_height // 2
+
+                x = self.draw_pos[0] + (cx - self.draw_pos[0]) * progress
+                y = self.draw_pos[1] + (cy - self.draw_pos[1]) * progress
+
+                draw_x = x - card_w // 2
+                draw_y = y - card_h // 2
+
+                self.render_on_top = (
+                    self.card_backs[self.ai_drawn_card.category],
+                    int(draw_x),
+                    int(draw_y),
+                    scale,
                 )
-                self.turn_phase = "player_to_deck"
-                self.animation_timer = 0
 
-        elif self.turn_phase == "player_to_deck":
-            self.animation_timer += 1
-            progress = min(self.animation_timer / self.animation_duration, 1)
-
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
-
-            x = cx + (deck_x - cx) * progress
-            y = cy + (deck_y - cy) * progress
-
-            self.render_on_top = (self.active_card, int(x), int(y), 2.2)
-
-            if progress >= 1:
-                if self.active_card is not None:
-                    self.deck.append(self.active_card)
-                self.active_card = None
-
-                self.current_turn = "ai"
-
-                self.turn_phase = "turn_transition"
-                self.transition_text = "Opponent's Turn"
-                self.next_turn_phase = (
-                    "ai_animating" if self.first_round else "ai_draw_anim"
-                )
-                self.transition_timer = 0
-
-                self.draw_timer = 0
-                self.ai_drawn_card = None
-
-        # ✅ FIXED TRANSITION
-        elif self.turn_phase == "turn_transition":
-
-            self.transition_timer += 1
-
-            if self.transition_timer >= 90:
-                self.transition_done = True
-
-            if self.transition_done:
-                self.transition_done = False
-                self.transition_timer = 0
-
-                if self.next_turn_phase == "player_draw":
-                    self.turn_phase = "player_pre_draw"
-                else:
-                    self.turn_phase = self.next_turn_phase
-
-        elif self.turn_phase == "player_pre_draw":
-            self.animation_timer += 1
-
-            if self.animation_timer >= 2:
-                self.turn_phase = "player_draw"
-                self.animation_timer = 0
-
-        # =========================
-        # AI DRAW (only after round 1)
-        # =========================
-
-        elif self.turn_phase == "ai_draw_anim":
-
-            if self.draw_timer == 0:
-                self.ai_drawn_card = None
-
-            if self.ai_drawn_card is None:
-                available = [
-                    c for c in self.deck if c.category == self.ai_last_played_category
-                ]
-
-                if not available:
-                    available = self.deck
-
-                if available:
-                    self.ai_drawn_card = random.choice(available)
-                    self.deck.remove(self.ai_drawn_card)
-                    self.draw_pos = (deck_x, deck_y)
-
-            self.draw_timer += 1
-            progress = min(self.draw_timer / 55, 1)
-
-            scale = 1.5
-
-            card_w = int(100 * scale)
-            card_h = int(140 * scale)
-
-            cx = self.screen_width // 2
-            cy = self.screen_height // 2
-
-            x = self.draw_pos[0] + (cx - self.draw_pos[0]) * progress
-            y = self.draw_pos[1] + (cy - self.draw_pos[1]) * progress
-
-            draw_x = x - card_w // 2
-            draw_y = y - card_h // 2
-
-            self.render_on_top = (
-                self.card_backs[self.ai_drawn_card.category],
-                int(draw_x),
-                int(draw_y),
-                scale,
-            )
-
-            if progress >= 1:
-                self.turn_phase = "ai_draw_pause"
-                self.draw_timer = 0
-
-        elif self.turn_phase == "ai_draw_pause":
-
-            self.draw_timer += 1
-
-            scale = 2.2
-
-            card_w = int(100 * scale)
-            card_h = int(140 * scale)
-
-            cx = self.screen_width // 2
-            cy = self.screen_height // 2
-
-            draw_x = cx - card_w // 2
-            draw_y = cy - card_h // 2
-
-            self.render_on_top = (
-                self.card_backs[self.ai_drawn_card.category],
-                draw_x,
-                draw_y,
-                scale,
-            )
-
-            if self.draw_timer >= 55:
-                self.turn_phase = "ai_draw_to_hand"
-                self.draw_timer = 0
-
-        elif self.turn_phase == "ai_draw_to_hand":
-
-            self.draw_timer += 1
-            progress = min(self.draw_timer / 55, 1)
-
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
-
-            target_x = 200
-            target_y = 100
-
-            x = cx + (target_x - cx) * progress
-            y = cy + (target_y - cy) * progress
-
-            self.render_on_top = (
-                self.card_backs[self.ai_drawn_card.category],
-                int(x),
-                int(y),
-                1.5,
-            )
-
-            if progress >= 1:
-                if self.ai_drawn_card is not None:
-                    self.opponent_player.hand.append(self.ai_drawn_card)
-                self.ai_drawn_card = None
-
-                self.turn_phase = "ai_thinking"
-                self.animation_timer = 0
-
-        elif self.turn_phase == "ai_thinking":
-
-            self.animation_timer += 1
-
-            if self.animation_timer >= 30:
-                self.turn_phase = "ai_animating"
-                self.animation_timer = 0
-
-        # =========================
-        # AI PLAY
-        # =========================
-
-        elif self.turn_phase == "ai_animating":
-
-            if self.ai_card is None:
-
-                self.ai_card = random.choice(self.opponent_player.hand)
-
-                # GET POSITION BEFORE REMOVAL
-                index = self.opponent_player.hand.index(self.ai_card)
-
-                card_width = 100
-                card_gap = 15
-
-                total_width = (
-                    len(self.opponent_player.hand) * card_width
-                    + (len(self.opponent_player.hand) - 1) * card_gap
-                )
-                start_x = (self.screen_width - total_width) // 2
-
-                card_x = start_x + index * (card_width + card_gap)
-                card_y = 100
-
-                self.ai_card_pos = (card_x, card_y)
-
-                # REMOVE IMMEDIATELY
-                self.opponent_player.hand.remove(self.ai_card)
-
-                self.ai_last_played_category = self.ai_card.category
-
-                self.animation_timer = 0  # reset properly
-
-            self.animation_timer += 1
-            progress = min(self.animation_timer / self.animation_duration, 1)
-
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
-
-            x = self.ai_card_pos[0] + (cx - self.ai_card_pos[0]) * progress
-            y = self.ai_card_pos[1] + (cy - self.ai_card_pos[1]) * progress
-
-            self.render_on_top = (self.ai_card, int(x), int(y), 2.2)
-
-            if progress >= 1:
-                self.turn_phase = "ai_showing"
-                self.animation_timer = 0
-
-        elif self.turn_phase == "ai_showing":
-
-            self.animation_timer += 1
-
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
-
-            self.render_on_top = (self.ai_card, cx, cy, 2.2)
-
-            if self.animation_timer >= 35:
-                self.turn_phase = "ai_pause"
-                self.animation_timer = 0
-
-        elif self.turn_phase == "ai_pause":
-
-            self.animation_timer += 1
-
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
-
-            self.render_on_top = (self.ai_card, cx, cy, 2.2)
-
-            if self.animation_timer >= 30:
-                self.game_manager.play_card(
-                    self.opponent_player, self.our_player, self.ai_card
-                )
-                self.turn_phase = "ai_to_deck"
-                self.animation_timer = 0
-
-        elif self.turn_phase == "ai_to_deck":
-
-            self.animation_timer += 1
-            progress = min(self.animation_timer / self.animation_duration, 1)
-
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
-
-            x = cx + (deck_x - cx) * progress
-            y = cy + (deck_y - cy) * progress
-
-            self.render_on_top = (self.ai_card, int(x), int(y), 2.2)
-
-            if progress >= 1:
-                if self.ai_card is not None:
-                    self.deck.append(self.ai_card)
-
-                self.ai_card = None
-                self.current_turn = "player"
-
-                if self.first_round:
-                    self.first_round = False
-
-                self.turn_phase = "turn_transition"
-                self.transition_text = "Your Turn"
-                self.next_turn_phase = "player_draw"
-                self.draw_timer = 0
-                self.drawn_card = None
-                self.animation_timer = 0
-
-        # =========================
-        # PLAYER DRAW
-        # =========================
-
-        elif self.turn_phase == "player_draw":
-
-            if self.drawn_card is None:
-
-                available = [
-                    c for c in self.deck if c.category == self.last_played_category
-                ]
-
-                if not available:
-                    available = self.deck
-
-                if available:
-                    self.drawn_card = random.choice(available)
-                    self.deck.remove(self.drawn_card)
-
-                    self.draw_pos = (deck_x, deck_y)
+                if progress >= 1:
+                    self.turn_phase = "ai_draw_pause"
                     self.draw_timer = 0
 
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
+            elif self.turn_phase == "ai_draw_pause":
 
-            self.render_on_top = (
-                self.card_backs[self.drawn_card.category],
-                int(self.draw_pos[0]),
-                int(self.draw_pos[1]),
-                1.5,
-            )
+                self.draw_timer += 1
 
-            self.turn_phase = "player_draw_anim"
+                scale = 2.2
 
-        elif self.turn_phase == "player_draw_anim":
+                card_w = int(100 * scale)
+                card_h = int(140 * scale)
 
-            self.draw_timer += 1
-            progress = min(self.draw_timer / 55, 1)
+                cx = self.screen_width // 2
+                cy = self.screen_height // 2
 
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
+                draw_x = cx - card_w // 2
+                draw_y = cy - card_h // 2
 
-            x = self.draw_pos[0] + (cx - self.draw_pos[0]) * progress
-            y = self.draw_pos[1] + (cy - self.draw_pos[1]) * progress
+                self.render_on_top = (
+                    self.card_backs[self.ai_drawn_card.category],
+                    draw_x,
+                    draw_y,
+                    scale,
+                )
 
-            self.render_on_top = (
-                self.card_backs[self.drawn_card.category],
-                int(x),
-                int(y),
-                1.5,
-            )
+                if self.draw_timer >= 55:
+                    self.turn_phase = "ai_draw_to_hand"
+                    self.draw_timer = 0
 
-            if progress >= 1:
-                self.turn_phase = "player_draw_reveal"
-                self.draw_timer = 0
+            elif self.turn_phase == "ai_draw_to_hand":
 
-        elif self.turn_phase == "player_draw_reveal":
+                self.draw_timer += 1
+                progress = min(self.draw_timer / 55, 1)
 
-            self.draw_timer += 1
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
 
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
+                target_x = 200
+                target_y = 100
 
-            self.render_on_top = (self.drawn_card, cx, cy, 2.2)
+                x = cx + (target_x - cx) * progress
+                y = cy + (target_y - cy) * progress
 
-            if self.draw_timer >= 55:
-                self.turn_phase = "player_draw_to_hand"
-                self.draw_timer = 0
+                self.render_on_top = (
+                    self.card_backs[self.ai_drawn_card.category],
+                    int(x),
+                    int(y),
+                    1.5,
+                )
 
-        elif self.turn_phase == "player_draw_to_hand":
+                if progress >= 1:
+                    if self.ai_drawn_card is not None:
+                        self.opponent_player.hand.append(self.ai_drawn_card)
+                    self.ai_drawn_card = None
 
-            self.draw_timer += 1
-            progress = min(self.draw_timer / 55, 1)
+                    self.turn_phase = "ai_thinking"
+                    self.animation_timer = 0
 
-            hand_index = len(self.our_player.hand)
+            elif self.turn_phase == "ai_thinking":
 
-            total_width = (hand_index + 1) * card_width + hand_index * card_gap
-            start_x = (self.screen_width - total_width) // 2
+                self.animation_timer += 1
 
-            target_x = start_x + hand_index * (card_width + card_gap)
-            target_y = 480
+                if self.animation_timer >= 30:
+                    self.turn_phase = "ai_animating"
+                    self.animation_timer = 0
 
-            cx = self.screen_width // 2 - 50
-            cy = self.screen_height // 2 - 70
+            # =========================
+            # AI PLAY
+            # =========================
 
-            x = cx + (target_x - cx) * progress
-            y = cy + (target_y - cy) * progress
+            elif self.turn_phase == "ai_animating":
 
-            self.render_on_top = (self.drawn_card, int(x), int(y), 1.5)
+                if self.ai_card is None:
 
-            if progress >= 1:
-                if self.drawn_card is not None:
-                    self.our_player.hand.append(self.drawn_card)
-                self.drawn_card = None
+                    difficulty = "casual"
 
-                self.turn_phase = "player_idle"
+                    if self.mode == "competitive":
+                        difficulty = self.rank
+
+                    self.ai_card = self.game_manager.choose_ai_card(
+                        self.opponent_player, self.our_player, difficulty
+                    )
+
+                    # GET POSITION BEFORE REMOVAL
+                    index = self.opponent_player.hand.index(self.ai_card)
+
+                    card_width = 100
+                    card_gap = 15
+
+                    total_width = (
+                        len(self.opponent_player.hand) * card_width
+                        + (len(self.opponent_player.hand) - 1) * card_gap
+                    )
+                    start_x = (self.screen_width - total_width) // 2
+
+                    card_x = start_x + index * (card_width + card_gap)
+                    card_y = 100
+
+                    self.ai_card_pos = (card_x, card_y)
+
+                    # REMOVE IMMEDIATELY
+                    self.opponent_player.hand.remove(self.ai_card)
+
+                    self.ai_last_played_category = self.ai_card.category
+
+                    self.animation_timer = 0  # reset properly
+
+                self.animation_timer += 1
+                progress = min(self.animation_timer / self.animation_duration, 1)
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                x = self.ai_card_pos[0] + (cx - self.ai_card_pos[0]) * progress
+                y = self.ai_card_pos[1] + (cy - self.ai_card_pos[1]) * progress
+
+                self.render_on_top = (self.ai_card, int(x), int(y), 2.2)
+
+                if progress >= 1:
+                    self.turn_phase = "ai_showing"
+                    self.animation_timer = 0
+
+            elif self.turn_phase == "ai_showing":
+
+                self.animation_timer += 1
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                self.render_on_top = (self.ai_card, cx, cy, 2.2)
+
+                if self.animation_timer >= 35:
+                    self.turn_phase = "ai_pause"
+                    self.animation_timer = 0
+
+            elif self.turn_phase == "ai_pause":
+
+                self.animation_timer += 1
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                self.render_on_top = (self.ai_card, cx, cy, 2.2)
+
+                if self.animation_timer >= 30:
+                    self.game_manager.play_card(
+                        self.opponent_player, self.our_player, self.ai_card
+                    )
+                    self.turn_phase = "ai_to_deck"
+                    self.animation_timer = 0
+
+            elif self.turn_phase == "ai_to_deck":
+
+                self.animation_timer += 1
+                progress = min(self.animation_timer / self.animation_duration, 1)
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                x = cx + (deck_x - cx) * progress
+                y = cy + (deck_y - cy) * progress
+
+                self.render_on_top = (self.ai_card, int(x), int(y), 2.2)
+
+                if progress >= 1:
+                    if self.ai_card is not None:
+                        self.deck.append(self.ai_card)
+
+                    self.ai_card = None
+                    self.current_turn = "player"
+
+                    if self.first_round:
+                        self.first_round = False
+
+                    self.turn_phase = "turn_transition"
+                    self.transition_text = "Your Turn"
+                    self.next_turn_phase = "player_draw"
+                    self.draw_timer = 0
+                    self.drawn_card = None
+                    self.animation_timer = 0
+
+            # =========================
+            # PLAYER DRAW
+            # =========================
+
+            elif self.turn_phase == "player_draw":
+
+                if self.drawn_card is None:
+
+                    available = [
+                        c for c in self.deck if c.category == self.last_played_category
+                    ]
+
+                    if not available:
+                        available = self.deck
+
+                    if available:
+                        self.drawn_card = random.choice(available)
+                        self.deck.remove(self.drawn_card)
+
+                        self.draw_pos = (deck_x, deck_y)
+                        self.draw_timer = 0
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                self.render_on_top = (
+                    self.card_backs[self.drawn_card.category],
+                    int(self.draw_pos[0]),
+                    int(self.draw_pos[1]),
+                    1.5,
+                )
+
+                self.turn_phase = "player_draw_anim"
+
+            elif self.turn_phase == "player_draw_anim":
+
+                self.draw_timer += 1
+                progress = min(self.draw_timer / 55, 1)
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                x = self.draw_pos[0] + (cx - self.draw_pos[0]) * progress
+                y = self.draw_pos[1] + (cy - self.draw_pos[1]) * progress
+
+                self.render_on_top = (
+                    self.card_backs[self.drawn_card.category],
+                    int(x),
+                    int(y),
+                    1.5,
+                )
+
+                if progress >= 1:
+                    self.turn_phase = "player_draw_reveal"
+                    self.draw_timer = 0
+
+            elif self.turn_phase == "player_draw_reveal":
+
+                self.draw_timer += 1
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                self.render_on_top = (self.drawn_card, cx, cy, 2.2)
+
+                if self.draw_timer >= 55:
+                    self.turn_phase = "player_draw_to_hand"
+                    self.draw_timer = 0
+
+            elif self.turn_phase == "player_draw_to_hand":
+
+                self.draw_timer += 1
+                progress = min(self.draw_timer / 55, 1)
+
+                hand_index = len(self.our_player.hand)
+
+                total_width = (hand_index + 1) * card_width + hand_index * card_gap
+                start_x = (self.screen_width - total_width) // 2
+
+                target_x = start_x + hand_index * (card_width + card_gap)
+                target_y = 480
+
+                cx = self.screen_width // 2 - 50
+                cy = self.screen_height // 2 - 70
+
+                x = cx + (target_x - cx) * progress
+                y = cy + (target_y - cy) * progress
+
+                self.render_on_top = (self.drawn_card, int(x), int(y), 1.5)
+
+                if progress >= 1:
+                    if self.drawn_card is not None:
+                        self.our_player.hand.append(self.drawn_card)
+                    self.drawn_card = None
+
+                    self.turn_phase = "player_idle"
 
         # =========================
         # DRAW ON TOP
@@ -752,7 +819,6 @@ class GameScreen:
 
             self.render_on_top = None
 
-        # TRANSITION TEXT
         if self.turn_phase == "turn_transition":
 
             font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 80)
@@ -786,12 +852,107 @@ class GameScreen:
                 text_surface,
                 (
                     self.screen_width // 2 - text_surface.get_width() // 2,
-                    40,
+                    100,
                 ),
             )
 
-        result = self.game_manager.check_game_over()
-        if result:
-            print(result)
+            mode_font = pygame.font.Font("resources/fonts/Apocalypse.ttf")
+
+            mode_text = self.mode
+
+            if self.mode == "competitive" and self.rank:
+                mode_text += f" ({self.rank})"
+
+            mode_surface = mode_font.render(mode_text, True, (255, 255, 255))
+
+            self.screen.blit(mode_surface, (20, 20))
+
+        if not self.game_over:
+            result = self.game_manager.check_game_over()
+
+            if result:
+                self.game_over = True
+                self.game_result = result
+
+        if self.game_over and not self.results_processed:
+
+            if self.game_result == "win":
+                self.xp_gained = 50
+                self.wins += 1
+            else:
+                self.xp_gained = 20
+                self.losses += 1
+
+            self.xp += self.xp_gained
+
+            self.level, self.xp_to_next = calculate_level(self.xp)
+
+            db = Database()
+            db.update_account(
+                self.username,
+                self.xp,
+                self.level,
+                self.wins,
+                self.losses,
+            )
+
+            self.results_processed = True
+
+        if self.game_over:
+
+            # dark transparent overlay
+            overlay = pygame.Surface((self.screen_width, self.screen_height))
+            overlay.set_alpha(180)
+            overlay.fill((0, 0, 0))
+            self.screen.blit(overlay, (0, 0))
+
+            # main result text
+            font_big = pygame.font.Font("resources/fonts/Apocalypse.ttf", 80)
+
+            if self.game_result == "win":
+                result_text = "YOU WIN"
+                color = (0, 255, 0)
+            else:
+                result_text = "YOU LOSE"
+                color = (255, 80, 80)
+
+            result_surface = font_big.render(result_text, True, color)
+
+            self.screen.blit(
+                result_surface,
+                (
+                    self.screen_width // 2 - result_surface.get_width() // 2,
+                    self.screen_height // 2 - 120,
+                ),
+            )
+
+            # XP text
+            font_small = pygame.font.Font("resources/fonts/Apocalypse.ttf", 40)
+
+            xp_surface = font_small.render(
+                f"XP Gained: {self.xp_gained}", True, (255, 255, 255)
+            )
+
+            self.screen.blit(
+                xp_surface,
+                (
+                    self.screen_width // 2 - xp_surface.get_width() // 2,
+                    self.screen_height // 2,
+                ),
+            )
+
+            pygame.draw.rect(self.screen, (40, 40, 40), self.menu_button_rect)
+            pygame.draw.rect(self.screen, (255, 255, 255), self.menu_button_rect, 3)
+
+            font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 30)
+            text_surface = font.render("MAIN MENU", True, (255, 255, 255))
+
+            self.screen.blit(
+                text_surface,
+                (
+                    self.menu_button_rect.centerx - text_surface.get_width() // 2,
+                    self.menu_button_rect.centery - text_surface.get_height() // 2,
+                ),
+            )
 
         return GameState.GAME_SCREEN

@@ -9,6 +9,20 @@ from pygame.event import Event
 
 import pygame
 
+from clutch_draw.db.utils import Database
+
+
+def calculate_level(xp):
+    level = 1
+    xp_needed = 100
+
+    while xp >= xp_needed:
+        xp -= xp_needed
+        level += 1
+        xp_needed += 50
+
+    return level, xp, xp_needed
+
 
 class MainMenuScreen:
 
@@ -20,6 +34,7 @@ class MainMenuScreen:
         button_font: Font,
         title_font: Font,
         manager: UIManager,
+        user_data: dict,
     ):
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -28,7 +43,24 @@ class MainMenuScreen:
         self.title_font = title_font
         self.manager = manager
 
+        self.db = Database()
+
+        self.username = user_data["username"]
+        self.xp = user_data["xp"]
+        self.level = user_data["level"]
+        self.xp_to_next = 100 + (self.level - 1) * 50
+        self.wins = user_data["wins"]
+        self.losses = user_data["losses"]
+
+        self.profile_rect = pygame.Rect(self.screen_width - 260, 30, 210, 55)
+
+        self.profile_expanded_rect = pygame.Rect(self.screen_width - 320, 30, 300, 230)
+
     def render(self, events: list[Event]) -> GameState:
+
+        title_font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 32)
+        text_font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 20)
+        small_font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 16)
 
         play_button = create_button(self.button_font, "Play")
         options_button = create_button(self.button_font, "Options")
@@ -77,5 +109,96 @@ class MainMenuScreen:
                     print("Exit clicked")
                     pygame.quit()
                     raise SystemExit
+
+        mouse_pos = pygame.mouse.get_pos()
+        hovering_profile = self.profile_rect.collidepoint(mouse_pos)
+
+        pygame.draw.rect(self.screen, (0, 0, 0), self.profile_rect)
+
+        # level circle
+        pygame.draw.circle(
+            self.screen,
+            (255, 255, 255),
+            (self.profile_rect.x + 30, self.profile_rect.y + 30),
+            18,
+        )
+
+        name_font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 26)
+        level_font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 24)
+
+        level_text = level_font.render(str(self.level), True, (0, 0, 0))
+        self.screen.blit(
+            level_text,
+            (
+                self.profile_rect.x + 30 - level_text.get_width() // 2,
+                self.profile_rect.y + 30 - level_text.get_height() // 2,
+            ),
+        )
+
+        # username
+        username_text = name_font.render(self.username, True, (255, 255, 255))
+        self.screen.blit(
+            username_text,
+            (self.profile_rect.x + 65, self.profile_rect.y + 15),
+        )
+
+        if hovering_profile:
+
+            pygame.draw.rect(self.screen, (0, 0, 0), self.profile_expanded_rect)
+            pygame.draw.rect(
+                self.screen, (255, 255, 255), self.profile_expanded_rect, 2
+            )
+
+            padding = 12
+            line_gap = 38
+
+            start_x = self.profile_expanded_rect.x + padding
+            start_y = self.profile_expanded_rect.y + padding
+
+            # username + level
+            title_surface = title_font.render(
+                f"(Lvl {self.level}) {self.username} ", True, (255, 255, 255)
+            )
+
+            # XP
+            xp_surface = text_font.render(
+                f"XP: {self.xp}/{self.xp_to_next}", True, (255, 255, 255)
+            )
+
+            # Wins/Losses
+            wins_surface = text_font.render(f"WINS: {self.wins}", True, (255, 255, 255))
+
+            losses_surface = text_font.render(
+                f"LOSSES: {self.losses}", True, (255, 255, 255)
+            )
+
+            total_games = self.wins + self.losses
+
+            total_surface = text_font.render(
+                f"GAMES: {total_games}", True, (255, 255, 255)
+            )
+
+            unlock_colour = (0, 255, 0) if self.level >= 5 else (255, 80, 80)
+            unlock_surface = small_font.render(
+                (
+                    "Competitive Unlocked"
+                    if self.level >= 5
+                    else "Competitive unlocks at Level 5"
+                ),
+                True,
+                unlock_colour,
+            )
+
+            self.screen.blit(title_surface, (start_x, start_y))
+
+            self.screen.blit(xp_surface, (start_x, start_y + line_gap))
+
+            self.screen.blit(wins_surface, (start_x, start_y + line_gap * 2))
+
+            self.screen.blit(losses_surface, (start_x, start_y + line_gap * 3))
+
+            self.screen.blit(total_surface, (start_x, start_y + line_gap * 4))
+
+            self.screen.blit(unlock_surface, (start_x, start_y + line_gap * 5))
 
         return next_state

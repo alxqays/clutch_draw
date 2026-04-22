@@ -121,10 +121,19 @@ class SignInScreen:
                         self.error = "Username does not exist."
                         continue
 
-                    _, stored_password = account
+                    username, stored_password, xp, level, wins, losses = account
+
                     if self.password_input.get_text() != stored_password:
                         self.error = "Invalid password."
                         continue
+
+                    self.logged_in_user = {
+                        "username": username,
+                        "xp": xp,
+                        "level": level,
+                        "wins": wins,
+                        "losses": losses,
+                    }
 
                     next_state = GameState.MAIN_MENU_SCREEN
 

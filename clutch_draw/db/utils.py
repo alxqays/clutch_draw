@@ -17,7 +17,11 @@ class Database:
             """
         CREATE TABLE IF NOT EXISTS accounts (
             username PRIMARY KEY,
-            password TEXT
+            password TEXT,
+            xp INTEGER DEFAULT 0,
+            level INTEGER DEFAULT 1,
+            wins INTEGER DEFAULT 0,
+            losses INTEGER DEFAULT 0
         )
         """
         )
@@ -77,10 +81,29 @@ class Database:
         cursor = conn.cursor()
 
         # 3. Read data
-        cursor.execute("SELECT * FROM accounts WHERE username = ?", (username,))
+        cursor.execute(
+            "SELECT username, password, xp, level, wins, losses FROM accounts WHERE username = ?",
+            (username,),
+        )
         account = cursor.fetchone()  # tuple[int, str, str] | None
 
         # 4. Close connection
         conn.close()
 
         return account
+
+    def update_account(self, username, xp, level, wins, losses):
+        conn = sqlite3.connect("clutch_draw.db")
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE accounts
+            SET xp = ?, level = ?, wins = ?, losses = ?
+            WHERE username = ?
+            """,
+            (xp, level, wins, losses, username),
+        )
+
+        conn.commit()
+        conn.close()

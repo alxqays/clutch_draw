@@ -51,6 +51,7 @@ def main():
     game_screen = None
 
     database = Database()
+    user_data = None
     # Everything inside the while loop happpens on every frame
 
     while True:
@@ -70,6 +71,9 @@ def main():
 
         elif current_state == GameState.SIGN_IN_SCREEN:
             next_state = sign_in_screen.render(events)
+
+            if hasattr(sign_in_screen, "logged_in_user"):
+                user_data = sign_in_screen.logged_in_user
 
         elif current_state == GameState.SIGN_UP_SCREEN:
             next_state = sign_up_screen.render(events)
@@ -124,6 +128,19 @@ def main():
                 )
 
             if next_state == GameState.MAIN_MENU_SCREEN:
+
+                account = database.get_account(user_data["username"])
+
+                username, _, xp, level, wins, losses = account
+
+                user_data = {
+                    "username": username,
+                    "xp": xp,
+                    "level": level,
+                    "wins": wins,
+                    "losses": losses,
+                }
+
                 main_menu_screen = MainMenuScreen(
                     screen_width,
                     screen_height,
@@ -131,6 +148,7 @@ def main():
                     font_apocalypse_size50,
                     font_apocalypse_size100,
                     manager,
+                    user_data,
                 )
 
             if next_state == GameState.GAME_SETUP_SCREEN:
@@ -140,6 +158,7 @@ def main():
                     screen,
                     font_apocalypse_size50,
                     manager,
+                    user_data,
                 )
 
             if next_state == GameState.OPTIONS_SCREEN:
@@ -153,6 +172,14 @@ def main():
                 )
 
             if next_state == GameState.GAME_SCREEN:
+
+                mode = "casual"
+                rank = None
+
+                if game_setup_screen is not None:
+                    mode = getattr(game_setup_screen, "final_mode", "casual")
+                    rank = getattr(game_setup_screen, "final_rank", None)
+
                 game_screen = GameScreen(
                     screen_width,
                     screen_height,
@@ -160,6 +187,9 @@ def main():
                     font_apocalypse_size50,
                     font_apocalypse_size15,
                     manager,
+                    user_data,
+                    mode=mode,
+                    rank=rank,
                 )
 
         current_state = next_state

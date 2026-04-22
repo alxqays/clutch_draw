@@ -71,9 +71,87 @@ class GameManager:
             self.opponent, self.player, card
         )  # ai takes its turn by playing the selected card and applying its effects, just like the player.
 
+    def choose_ai_card(self, ai, player, difficulty="casual"):
+
+        if difficulty == "casual":
+            return random.choice(ai.hand)
+
+        if difficulty == "bronze":
+
+            if ai.health <= 30:
+                support_cards = [c for c in ai.hand if c.category == "Support"]
+                if support_cards:
+                    return max(support_cards, key=lambda c: c.value)
+
+            if ai.shield <= 10 and ai.health < 70:
+                defence_cards = [c for c in ai.hand if c.category == "Defence"]
+                if defence_cards:
+                    return max(defence_cards, key=lambda c: c.value)
+
+            offence_cards = [c for c in ai.hand if c.category == "Offence"]
+            if offence_cards:
+                return max(offence_cards, key=lambda c: c.value)
+
+            return random.choice(ai.hand)
+
+        if difficulty == "silver":
+
+            offence_cards = [c for c in ai.hand if c.category == "Offence"]
+
+            if offence_cards:
+                sorted_cards = sorted(offence_cards, key=lambda c: c.value)
+                return random.choice(sorted_cards[-2:])
+
+            return random.choice(ai.hand)
+
+        if difficulty == "gold":
+
+            best_card = None
+            best_score = -999
+
+            for card in ai.hand:
+                score = 0
+
+                if card.category == "Offence":
+                    score += card.value * 2
+
+                    if player.health - card.value <= 0:
+                        score += 100
+
+                elif card.category == "Support":
+                    if ai.health < 50:
+                        score += 100 - ai.health
+                    else:
+                        score -= 20
+
+                elif card.category == "Defence":
+                    if ai.shield < 20:
+                        score += 50 - ai.shield
+                    else:
+                        score -= 10
+
+                if score > best_score:
+                    best_score = score
+                    best_card = card
+
+            return best_card
+
+        return random.choice(ai.hand)
+
     def check_game_over(self):
         if self.player.health <= 0:
             return "loss"
         elif self.opponent.health <= 0:
             return "win"
         return None
+
+    def calculate_level(xp: int) -> tuple[int, int]:
+        level = 1
+        xp_needed = 100
+
+        while xp >= xp_needed:
+            xp -= xp_needed
+            level += 1
+            xp_needed = 100 + (level - 1) * 50
+
+        return level, xp_needed
