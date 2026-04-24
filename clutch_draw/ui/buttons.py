@@ -1,11 +1,13 @@
 import pygame
 
 
-def create_button(font: pygame.font.Font, text: str) -> pygame.Surface:
-    width = 200
-    height = 75
+def create_button(
+    font: pygame.font.Font, text: str, width=200, height=75
+) -> pygame.Surface:
+
     surface = pygame.Surface((width, height))
     surface.fill(pygame.Color(0, 0, 0))
+
     text_surface = font.render(text, True, pygame.Color(255, 255, 255))
     surface.blit(
         text_surface,

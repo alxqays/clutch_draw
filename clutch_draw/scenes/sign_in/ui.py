@@ -36,6 +36,11 @@ class SignInScreen:
         self.manager = manager
         self.database = database
 
+        self.background = pygame.image.load("resources/images/orig_big.png").convert()
+        self.background = pygame.transform.scale(
+            self.background, (self.screen_width, self.screen_height)
+        )
+
         sign_in_box_width = 350
         sign_in_box_height = 50
 
@@ -80,7 +85,12 @@ class SignInScreen:
 
     def render(self, events: list[Event]) -> GameState:
 
-        self.screen.fill("grey")
+        self.screen.blit(self.background, (0, 0))
+
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(120)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
 
         main_text = self.title_font.render("Sign In", True, Color(255, 255, 255))
         border_text = self.title_font.render("Sign In", True, Color(0, 0, 0))
@@ -100,7 +110,13 @@ class SignInScreen:
         sign_in_button = create_button(self.button_font, "Sign In")
         sign_in_button_x = self.screen_width // 2 - sign_in_button.get_width() // 2
         sign_in_button_y = self.screen_height - sign_in_button.get_height() - 165
+
+        back_button = create_button(self.button_font, "Back")
+        back_x = self.screen_width // 2 - back_button.get_width() // 2
+        back_y = sign_in_button_y + 80
+
         self.screen.blit(sign_in_button, (sign_in_button_x, sign_in_button_y))
+        self.screen.blit(back_button, (back_x, back_y))
 
         if self.error is not None:
             error_font = Font(None, 36)
@@ -136,5 +152,8 @@ class SignInScreen:
                     }
 
                     next_state = GameState.MAIN_MENU_SCREEN
+
+                if mouse_inside(event, back_button, back_x, back_y):
+                    return GameState.WELCOME_SCREEN
 
         return next_state

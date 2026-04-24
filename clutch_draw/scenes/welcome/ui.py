@@ -29,9 +29,14 @@ class WelcomeScreen:
         self.title_font = title_font
         self.manager = manager
 
+        self.background = pygame.image.load("resources/images/orig_big.png").convert()
+        self.background = pygame.transform.scale(
+            self.background, (self.screen_width, self.screen_height)
+        )
+
     def render(self, events: list[Event]) -> GameState:
 
-        self.screen.fill("grey")
+        self.screen.blit(self.background, (0, 0))
 
         main_text = self.title_font.render("Clutch Draw", True, Color(255, 255, 255))
         border_text = self.title_font.render("Clutch Draw", True, Color(0, 0, 0))

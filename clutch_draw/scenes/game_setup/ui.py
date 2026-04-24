@@ -26,13 +26,23 @@ class GameSetupScreen:
         self.title_font = title_font
         self.manager = manager
 
+        self.background = pygame.image.load("resources/images/orig_big.png").convert()
+        self.background = pygame.transform.scale(
+            self.background, (self.screen_width, self.screen_height)
+        )
+
         self.level = user_data["level"]
         self.selected_mode = "casual"
         self.selected_rank = None
 
     def render(self, events: list[Event]) -> GameState:
 
-        self.screen.fill("grey")
+        self.screen.blit(self.background, (0, 0))
+
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(120)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
 
         casual_button = create_button(self.title_font, "Casual")
         comp_button = create_button(self.title_font, "Competitive")

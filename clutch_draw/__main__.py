@@ -1,4 +1,5 @@
 import pygame
+
 from pathlib import Path
 
 from pygame_gui import UIManager
@@ -12,6 +13,8 @@ from clutch_draw.scenes.options.ui import OptionsScreen
 from clutch_draw.scenes.sign_in.ui import SignInScreen
 from clutch_draw.scenes.sign_up.ui import SignUpScreen
 from clutch_draw.scenes.welcome.ui import WelcomeScreen
+from clutch_draw.scenes.audio.ui import AudioScreen
+from clutch_draw.scenes.controls.ui import ControlsScreen
 
 RESOURCES_PATH = Path(__file__).parent.parent / "resources"
 FONTS_PATH = RESOURCES_PATH / "fonts"
@@ -48,6 +51,8 @@ def main():
     main_menu_screen = None
     game_setup_screen = None
     options_screen = None
+    audio_screen = None
+    controls_screen = None
     game_screen = None
 
     database = Database()
@@ -86,6 +91,12 @@ def main():
 
         elif current_state == GameState.OPTIONS_SCREEN:
             next_state = options_screen.render(events)
+
+        elif current_state == GameState.AUDIO_SCREEN:
+            next_state = audio_screen.render(events)
+
+        elif current_state == GameState.CONTROLS_SCREEN:
+            next_state = controls_screen.render(events)
 
         elif current_state == GameState.GAME_SCREEN:
             next_state = game_screen.render(events)
@@ -169,6 +180,25 @@ def main():
                     font_apocalypse_size50,
                     font_apocalypse_size100,
                     manager,
+                )
+
+            if next_state == GameState.AUDIO_SCREEN:
+                audio_screen = AudioScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse_size50,
+                    font_apocalypse_size100,
+                    manager,
+                )
+
+            if next_state == GameState.CONTROLS_SCREEN:
+                controls_screen = ControlsScreen(
+                    screen_width,
+                    screen_height,
+                    screen,
+                    font_apocalypse_size50,
+                    font_apocalypse_size100,
                 )
 
             if next_state == GameState.GAME_SCREEN:

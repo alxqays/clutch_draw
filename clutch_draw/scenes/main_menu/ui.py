@@ -43,6 +43,11 @@ class MainMenuScreen:
         self.title_font = title_font
         self.manager = manager
 
+        self.background = pygame.image.load("resources/images/orig_big.png").convert()
+        self.background = pygame.transform.scale(
+            self.background, (self.screen_width, self.screen_height)
+        )
+
         self.db = Database()
 
         self.username = user_data["username"]
@@ -66,7 +71,7 @@ class MainMenuScreen:
         options_button = create_button(self.button_font, "Options")
         exit_button = create_button(self.button_font, "Exit")
 
-        self.screen.fill("grey")
+        self.screen.blit(self.background, (0, 0))
 
         title_text = self.title_font.render("Main Menu", True, Color(255, 255, 255))
         border_text = self.title_font.render("Main Menu", True, Color(0, 0, 0))

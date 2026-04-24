@@ -13,6 +13,7 @@ from clutch_draw.ui.player import Player
 import random
 
 from clutch_draw.db.utils import Database
+from clutch_draw.ui.buttons import create_button
 
 
 def calculate_level(xp):
@@ -115,6 +116,8 @@ class GameScreen:
         self.xp_gained = 0
         self.results_processed = False
 
+        self.paused = False
+
         self.username = user_data["username"]
         self.xp = user_data["xp"]
         self.level = user_data["level"]
@@ -128,6 +131,11 @@ class GameScreen:
             self.screen_height // 2 + 80,
             200,
             60,
+        )
+
+        self.background = pygame.image.load("resources/images/orig_big.png").convert()
+        self.background = pygame.transform.scale(
+            self.background, (self.screen_width, self.screen_height)
         )
 
     def create_deck(self):
@@ -295,18 +303,78 @@ class GameScreen:
                     if self.menu_button_rect.collidepoint(event.pos):
                         return GameState.MAIN_MENU_SCREEN
 
-        self.screen.fill("grey")
+        self.screen.blit(self.background, (0, 0))
 
-        font = pygame.font.Font("resources/fonts/Apocalypse.ttf")
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(120)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
 
-        mode_text = f"{self.mode.upper()}"
+        label = "Resume" if self.paused else "Pause"
+        self.pause_button = create_button(self.title_font, label, 140, 50)
+        self.quit_button = create_button(self.title_font, "Quit", 140, 50)
 
-        if self.mode == "competitive":
-            mode_text += f" ({self.rank.upper()})"
+        pause_x = 40
+        pause_y = self.screen_height - self.pause_button.get_height() - 80
 
-        text_surface = font.render(mode_text, True, (255, 255, 255))
+        quit_x = pause_x
+        quit_y = pause_y + self.pause_button.get_height() + 10
 
-        self.screen.blit(text_surface, (20, 20))
+        self.screen.blit(self.pause_button, (pause_x, pause_y))
+        self.screen.blit(self.quit_button, (quit_x, quit_y))
+
+        for event in events:
+
+            if event.type == MOUSEBUTTONUP and not self.game_over:
+
+                if mouse_inside(event, self.pause_button, pause_x, pause_y):
+                    self.paused = not self.paused
+
+                if mouse_inside(event, self.quit_button, quit_x, quit_y):
+                    return GameState.MAIN_MENU_SCREEN
+
+            if event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_p or event.key == pygame.K_ESCAPE:
+                    self.paused = not self.paused
+
+                if event.key == pygame.K_q:
+                    return GameState.MAIN_MENU_SCREEN
+
+            if event.type == pygame.KEYDOWN and not self.paused and not self.game_over:
+
+                if self.turn_phase == "player_idle":
+
+                    key_map = {
+                        pygame.K_1: 0,
+                        pygame.K_2: 1,
+                        pygame.K_3: 2,
+                        pygame.K_4: 3,
+                        pygame.K_5: 4,
+                    }
+
+                    if event.key in key_map:
+                        index = key_map[event.key]
+
+                        if index < len(self.our_player.hand):
+                            card = self.our_player.hand[index]
+
+                            for c, x, y in self.our_player.card_positions:
+                                if c == card:
+                                    self.active_card = card
+                                    self.active_card_pos = (x, y)
+                                    break
+
+                            self.our_player.hand.remove(card)
+                            self.last_played_category = card.category
+
+                            self.turn_phase = "player_animating"
+                            self.animation_timer = 0
+
+                elif self.turn_phase == "player_wait_draw":
+
+                    if event.key == pygame.K_d:
+                        self.turn_phase = "player_draw"
 
         card_width = 100
         card_gap = 15
@@ -334,7 +402,7 @@ class GameScreen:
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
-        if self.turn_phase == "player_idle":
+        if self.turn_phase == "player_idle" and not self.paused:
             for card, x, y in self.our_player.card_positions:
                 rect = pygame.Rect(x, y, 100, 140)
                 if rect.collidepoint(mouse_x, mouse_y):
@@ -343,7 +411,7 @@ class GameScreen:
 
         # State Machine
 
-        if not self.game_over:
+        if not self.game_over and not self.paused:
 
             if self.turn_phase == "dealing":
                 self.animation_timer += 1
@@ -362,7 +430,7 @@ class GameScreen:
                         self.turn_phase = "player_idle"
                         self.animation_timer = 0
 
-            elif self.turn_phase == "player_idle":
+            elif self.turn_phase == "player_idle" and not self.paused:
                 for event in events:
                     if event.type == MOUSEBUTTONUP:
                         mouse_x, mouse_y = event.pos
@@ -475,9 +543,7 @@ class GameScreen:
                     self.turn_phase = "player_draw"
                     self.animation_timer = 0
 
-            # =========================
-            # AI DRAW (only after round 1)
-            # =========================
+            # AI Draw
 
             elif self.turn_phase == "ai_draw_anim":
 
@@ -590,9 +656,7 @@ class GameScreen:
                     self.turn_phase = "ai_animating"
                     self.animation_timer = 0
 
-            # =========================
-            # AI PLAY
-            # =========================
+            # AI Play
 
             elif self.turn_phase == "ai_animating":
 
@@ -700,14 +764,15 @@ class GameScreen:
 
                     self.turn_phase = "turn_transition"
                     self.transition_text = "Your Turn"
-                    self.next_turn_phase = "player_draw"
+                    self.next_turn_phase = "player_wait_draw"
                     self.draw_timer = 0
                     self.drawn_card = None
                     self.animation_timer = 0
 
-            # =========================
-            # PLAYER DRAW
-            # =========================
+            elif self.turn_phase == "player_wait_draw":
+                pass
+
+            # Player Draw
 
             elif self.turn_phase == "player_draw":
 
@@ -802,9 +867,7 @@ class GameScreen:
 
                     self.turn_phase = "player_idle"
 
-        # =========================
-        # DRAW ON TOP
-        # =========================
+        # Draw On Top
 
         if self.render_on_top:
             card, x, y, scale = self.render_on_top
@@ -852,9 +915,21 @@ class GameScreen:
                 text_surface,
                 (
                     self.screen_width // 2 - text_surface.get_width() // 2,
-                    100,
+                    40,
                 ),
             )
+
+            if self.turn_phase == "player_wait_draw":
+                font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 30)
+                text = font.render("press D to draw", True, (255, 255, 255))
+
+                self.screen.blit(
+                    text,
+                    (
+                        self.screen_width // 2 - text.get_width() // 2,
+                        self.screen_height // 2 + 40,
+                    ),
+                )
 
             mode_font = pygame.font.Font("resources/fonts/Apocalypse.ttf")
 
@@ -863,7 +938,7 @@ class GameScreen:
             if self.mode == "competitive" and self.rank:
                 mode_text += f" ({self.rank})"
 
-            mode_surface = mode_font.render(mode_text, True, (255, 255, 255))
+            mode_surface = mode_font.render(mode_text, True, (0, 0, 0))
 
             self.screen.blit(mode_surface, (20, 20))
 
@@ -897,6 +972,24 @@ class GameScreen:
             )
 
             self.results_processed = True
+
+        if self.paused and not self.game_over:
+
+            overlay = pygame.Surface((self.screen_width, self.screen_height))
+            overlay.set_alpha(180)
+            overlay.fill((0, 0, 0))
+            self.screen.blit(overlay, (0, 0))
+
+            font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 80)
+            text = font.render("Paused", True, (255, 255, 255))
+
+            self.screen.blit(
+                text,
+                (
+                    self.screen_width // 2 - text.get_width() // 2,
+                    self.screen_height // 2 - text.get_height() // 2,
+                ),
+            )
 
         if self.game_over:
 
@@ -954,5 +1047,8 @@ class GameScreen:
                     self.menu_button_rect.centery - text_surface.get_height() // 2,
                 ),
             )
+
+        self.screen.blit(self.pause_button, (pause_x, pause_y))
+        self.screen.blit(self.quit_button, (quit_x, quit_y))
 
         return GameState.GAME_SCREEN

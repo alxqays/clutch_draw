@@ -1,4 +1,12 @@
 {
-    "terminal.integrated.env.windows": {"PYTHONPATH": "${workspaceFolder}"},
-    "python.envFile": "${workspaceFolder}/.env"
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder}"
+    },
+    "python.envFile": "${workspaceFolder}/.env",
+
+    "editor.quickSuggestions": {
+        "other": true,
+        "comments": false,
+        "strings": false
+    }
 }
