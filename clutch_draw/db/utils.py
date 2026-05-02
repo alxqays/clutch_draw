@@ -2,21 +2,23 @@ import sqlite3
 
 
 class Database:
+
     def __init__(self):
-        pass
+        pass  # Nothing is initialised here as a new database connection is made in each method
 
     def insert_account(self, username: str, password: str) -> None:
-        # 1. Connect to a database (creates it if it doesn't exist)
+
+        # Connecting to the database (it will be created if it doesn't already exist)
         conn = sqlite3.connect("clutch_draw.db")
 
-        # 2. Create a cursor (used to run SQL commands)
+        # Creating a cursor so that SQL commands can be run
         cursor = conn.cursor()
 
-        # 3. Create a table
+        # Creating the accounts table if it doesn't already exist
         cursor.execute(
             """
         CREATE TABLE IF NOT EXISTS accounts (
-            username PRIMARY KEY,
+            username TEXT PRIMARY KEY,
             password TEXT,
             xp INTEGER DEFAULT 0,
             level INTEGER DEFAULT 1,
@@ -26,76 +28,88 @@ class Database:
         """
         )
 
-        # 4. Insert data
+        # Inserting a new account into the table
         cursor.execute(
-            "INSERT INTO accounts (username, password) VALUES (?, ?)",
+            "INSERT INTO accounts (username, password) VALUES (?, ?)",  # "?" act as placeholders so that values can be inserted safely
             (username, password),
         )
 
-        # 5. Save changes
+        # Saves the changes made
         conn.commit()
 
-        # 7. Close connection
+        # Closes the connection
         conn.close()
 
     def account_exists(self, username: str) -> bool:
-        # 1. Connect to a database (creates it if it doesn't exist)
+
+        # Connecting to the database (it will be created if it doesn't already exist)
         conn = sqlite3.connect("clutch_draw.db")
 
-        # 2. Create a cursor (used to run SQL commands)
+        # Creating a cursor so that SQL commands can be run
         cursor = conn.cursor()
 
-        # 3. Read data
+        # Checks if a username already exists
         cursor.execute("SELECT * FROM accounts WHERE username = ?", (username,))
         account = cursor.fetchone()
 
-        # 4. Close connection
+        # Closes the connection
         conn.close()
 
+        # If nothing is found, return False, otherwise return True
         if account is None:
             return False
         else:
             return True
 
-    def fetch_accounts(self) -> list[tuple[str, str]]:
-        # 1. Connect to a database (creates it if it doesn't exist)
+    def fetch_accounts(self) -> list[tuple[str, str, int, int, int, int]]:
+
+        # Connecting to the database (it will be created if it doesn't already exist)
         conn = sqlite3.connect("clutch_draw.db")
 
-        # 2. Create a cursor (used to run SQL commands)
+        # Creating a cursor so that SQL commands can be run
         cursor = conn.cursor()
 
-        # 3. Read data
+        # Gets all the accounts from the table
         cursor.execute("SELECT * FROM accounts")
-        accounts = cursor.fetchall()  # list[tuple[int, str, str]]
+        accounts = cursor.fetchall()
 
-        # 4. Close connection
+        # Closes the connection
         conn.close()
 
+        # Returns all account data
         return accounts
 
-    def get_account(self, username: str) -> tuple[str, str] | None:
-        # 1. Connect to a database (creates it if it doesn't exist)
+    def get_account(self, username: str) -> tuple[str, str, int, int, int, int] | None:
+
+        # Connecting to the database (it will be created if it doesn't already exist)
         conn = sqlite3.connect("clutch_draw.db")
 
-        # 2. Create a cursor (used to run SQL commands)
+        # Creating a cursor so that SQL commands can be run
         cursor = conn.cursor()
 
-        # 3. Read data
+        # Gets one specific account using the account's username
         cursor.execute(
             "SELECT username, password, xp, level, wins, losses FROM accounts WHERE username = ?",
             (username,),
         )
-        account = cursor.fetchone()  # tuple[int, str, str] | None
+        account = cursor.fetchone()
 
-        # 4. Close connection
+        # Closes the connection
         conn.close()
 
         return account
 
-    def update_account(self, username, xp, level, wins, losses):
+    def update_account(
+        self, username: str, xp: int, level: int, wins: int, losses: int
+    ) -> None:
+
+        # Connecting to the database (it will be created if it doesn't already exist)
         conn = sqlite3.connect("clutch_draw.db")
+
+        # Creating a cursor so that SQL commands can be run
         cursor = conn.cursor()
 
+        # Updating the user's stats: XP, Level, Wins, Losses
         cursor.execute(
             """
             UPDATE accounts
@@ -105,5 +119,8 @@ class Database:
             (xp, level, wins, losses, username),
         )
 
+        # Saves the changes made
         conn.commit()
+
+        # Closes the connection
         conn.close()

@@ -1,31 +1,24 @@
+import random
 import pygame
 from pygame_gui import UIManager
+from pygame import MOUSEBUTTONUP, Surface
+from pygame.event import Event
+from pygame.font import Font
 from clutch_draw.game_logic.game_manager import GameManager
 from clutch_draw.game_state import GameState
 from clutch_draw.ui.card import Card
-from clutch_draw.ui.mouse import mouse_inside
-
-from pygame import MOUSEMOTION, MOUSEBUTTONUP, Color, Surface
-from pygame.event import Event
-from pygame.font import Font
-
 from clutch_draw.ui.player import Player
-import random
-
 from clutch_draw.db.utils import Database
 from clutch_draw.ui.buttons import create_button
+from clutch_draw.ui.mouse import mouse_inside
 
+from pathlib import Path
 
-def calculate_level(xp):
-    level = 1
-    xp_needed = 100
-
-    while xp >= xp_needed:
-        xp -= xp_needed
-        level += 1
-        xp_needed += 50  # increasing difficulty
-
-    return level, xp_needed
+# Defininf file paths for resources
+RESOURCES_PATH = Path(__file__).parent.parent.parent.parent / "resources"
+FONTS_PATH = RESOURCES_PATH / "fonts"
+IMAGES_PATH = RESOURCES_PATH / "images"
+SOUNDS_PATH = RESOURCES_PATH / "sounds"
 
 
 class GameScreen:
@@ -42,32 +35,64 @@ class GameScreen:
         mode="casual",
         rank=None,
     ):
+        # Storing screen dimensions so that they can be used when rendering UI elements
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.screen = screen
+        # Storing fonts with specific sizes for reuse when rendering text
         self.title_font = title_font
         self.text_font = text_font
-        self.small_font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 12)
+        self.small_font = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 12)
+        # Storing UIManager for handling UI updates and event processing
         self.manager = manager
+        # Storing the selected game mode and rank
         self.mode = mode
         self.rank = rank
 
+        # Setting the background music volume
+        # I have set it to be lower in this particular screen so that the sfx of all the cards can be heard by the user
+        pygame.mixer.music.set_volume(0.3)
+
+        # Loading the sound effects for all the different cards to provide audio feedback of their actions
+        self.sfx_deal = pygame.mixer.Sound(str(SOUNDS_PATH / "card_dealing.mp3"))
+        self.sfx_shuffle = pygame.mixer.Sound(SOUNDS_PATH / "card_movement.mp3")
+
+        self.sfx_executer = pygame.mixer.Sound(str(SOUNDS_PATH / "knife.mp3"))
+        self.sfx_hunter = pygame.mixer.Sound(str(SOUNDS_PATH / "arrow.mp3"))
+        self.sfx_ambusher = pygame.mixer.Sound(str(SOUNDS_PATH / "grenade.mp3"))
+        self.sfx_gunner = pygame.mixer.Sound(str(SOUNDS_PATH / "gunshot.mp3"))
+
+        self.sfx_soldier = pygame.mixer.Sound(str(SOUNDS_PATH / "dog.mp3"))
+        self.sfx_enforcer = pygame.mixer.Sound(str(SOUNDS_PATH / "shield.mp3"))
+        self.sfx_guardian = pygame.mixer.Sound(str(SOUNDS_PATH / "cat.mp3"))
+        self.sfx_engineer = pygame.mixer.Sound(str(SOUNDS_PATH / "shield.mp3"))
+
+        self.sfx_doctor = pygame.mixer.Sound(str(SOUNDS_PATH / "heal.mp3"))
+        self.sfx_chemist = pygame.mixer.Sound(str(SOUNDS_PATH / "potion.mp3"))
+        self.sfx_scav = pygame.mixer.Sound(str(SOUNDS_PATH / "heal.mp3"))
+
+        # Tracking whether the sfx for the played card has already been triggered or not
+        self.sfx_played = False
+
+        # Creating the deck and loading the card back images for each category into it
         self.deck = self.create_deck()
         self.card_backs = {
             "Offence": pygame.image.load(
-                "resources/images/offence_card_back.png"
+                IMAGES_PATH / "offence_card_back.png"
             ).convert_alpha(),
             "Defence": pygame.image.load(
-                "resources/images/defence_card_back.png"
+                IMAGES_PATH / "defence_card_back.png"
             ).convert_alpha(),
             "Support": pygame.image.load(
-                "resources/images/support_card_back.png"
+                IMAGES_PATH / "support_card_back.png"
             ).convert_alpha(),
         }
 
+        # Creating the initial hands of cards for both players
         self.our_starting_hand = self.create_starting_hand()
         self.opponent_starting_hand = self.create_starting_hand()
 
+        # Initialising both player objects with their health, empty hands and rendering data
         self.our_player = Player(
             100, [], self.screen_width, self.screen_height, self.card_backs
         )
@@ -75,57 +100,71 @@ class GameScreen:
             100, [], self.screen_width, self.screen_height, self.card_backs
         )
 
+        # Creating an instance of the GameManager in order to handle core game logic
         self.game_manager = GameManager(
-            self.our_player, self.opponent_player, self.deck
+            self.our_player, self.opponent_player, self.deck, self
         )
 
+        # Initialising the animations machine starting phase
         self.turn_phase = "dealing"
 
+        # The variables used to control the timing of animations and smooth transitions between states
         self.animation_timer = 0
-        self.animation_duration = 40
+        self.animation_duration = 60
 
+        # Storing the currently active card being played/animated and its position on the screen
         self.active_card = None
         self.active_card_pos = (0, 0)
 
+        # Doing the same but for the AI's active card
         self.ai_card = None
         self.ai_card_pos = (0, 0)
 
+        # The variables used for handling card drawing animations for both players
         self.drawn_card = None
         self.ai_drawn_card = None
-
         self.draw_pos = (0, 0)
         self.draw_timer = 0
 
+        # The variable to keep track of how many cards have been dealt to the players during the starting hand animation
         self.deal_index = 0
 
+        # Stores the last card category played to influence future card draws (seen later)
         self.last_played_category = None
         self.ai_last_played_category = None
 
+        # Storing a card that should be rendered above all other elements
         self.render_on_top = None
 
         self.first_round = True
 
+        # The variables used to manage the transitions between player turns and turn indicators on the user's screen
         self.next_turn_phase = "turn_transition"
         self.transition_text = "Your Turn"
         self.transition_timer = 0
         self.transition_done = False
         self.current_turn = "player"
 
+        # The variables used to track the end of the game and reward calculations
         self.game_over = False
         self.game_result = None
         self.xp_gained = 0
         self.results_processed = False
 
+        # Tracking whether the game is currently paused or not, disabling the player from any gameplay interactions when True
         self.paused = False
 
+        # Retrieving the stored user data for updating the player's progress after the match
         self.username = user_data["username"]
         self.xp = user_data["xp"]
         self.level = user_data["level"]
         self.wins = user_data["wins"]
         self.losses = user_data["losses"]
 
-        _, self.xp_to_next = calculate_level(self.xp)
+        # Calculating the XP required for the next level using the system imported from "GameManager"
+        _, self.xp_to_next = self.game_manager.calculate_level(self.xp)
 
+        # Defining the clickable area for returning to the main menu after the game ends
         self.menu_button_rect = pygame.Rect(
             self.screen_width // 2 - 100,
             self.screen_height // 2 + 80,
@@ -133,11 +172,52 @@ class GameScreen:
             60,
         )
 
-        self.background = pygame.image.load("resources/images/orig_big.png").convert()
+        # Loading the background image using the path and scaling it to the screen's dimensions
+        self.background = pygame.image.load(IMAGES_PATH / "orig_big.png").convert()
         self.background = pygame.transform.scale(
             self.background, (self.screen_width, self.screen_height)
         )
 
+    # The card drawing system of the game, holds a slight bias on which card gets drawn based on the previous card category played and the rank of the game
+    def draw_card(self, last_category, difficulty="casual"):
+
+        if not self.deck:
+            return None
+
+        categories_in_hand = {c.category for c in self.our_player.hand}
+
+        if "Offence" not in categories_in_hand:
+            offence_cards = [c for c in self.deck if c.category == "Offence"]
+            if offence_cards:
+                card = random.choice(offence_cards)
+                self.deck.remove(card)
+                return card
+
+        # Defines how strongly the draw system favours repeatig the previous card category based on the rank of the game
+
+        bias_map = {
+            "casual": 0.5,
+            "bronze": 0.6,
+            "silver": 0.7,
+            "gold": 0.8,
+        }
+
+        bias = bias_map.get(difficulty, 0.5)
+
+        # If a previous category exists, there is a chance to draw a similar card
+        if last_category and random.random() < bias:
+            filtered = [c for c in self.deck if c.category == last_category]
+            if filtered:
+                card = random.choice(filtered)
+                self.deck.remove(card)
+                return card
+
+        card = random.choice(self.deck)
+        self.deck.remove(card)
+        return card
+
+    # Creating and returning the full deck of cards available for play in the game
+    # Acts as a global pool, to be used for dealing starting cards and returning and drawing cards throughout the game
     def create_deck(self):
         return [
             # Offence
@@ -148,43 +228,34 @@ class GameScreen:
                 "DMG",
                 "resources/images/hunter.png",
                 "Offence",
-                20,
-            ),
-            Card(
-                "Raider",
-                self.text_font,
-                self.small_font,
-                "DMG",
-                "resources/images/guardian.png",
-                "Offence",
-                25,
-            ),
-            Card(
-                "Smuggler",
-                self.text_font,
-                self.small_font,
-                "DMG",
-                "resources/images/guardian.png",
-                "Offence",
                 22,
+            ),
+            Card(
+                "Gunner",
+                self.text_font,
+                self.small_font,
+                "DMG",
+                "resources/images/gunner.png",
+                "Offence",
+                26,
             ),
             Card(
                 "Executer",
                 self.text_font,
                 self.small_font,
                 "DMG",
-                "resources/images/guardian.png",
+                "resources/images/executer.png",
                 "Offence",
-                30,
+                24,
             ),
             Card(
                 "Ambusher",
                 self.text_font,
                 self.small_font,
                 "DMG",
-                "resources/images/guardian.png",
+                "resources/images/ambusher.png",
                 "Offence",
-                18,
+                28,
             ),
             # Defence
             Card(
@@ -194,16 +265,16 @@ class GameScreen:
                 "SH",
                 "resources/images/soldier.png",
                 "Defence",
-                15,
+                16,
             ),
             Card(
                 "Enforcer",
                 self.text_font,
                 self.small_font,
                 "SH",
-                "resources/images/guardian.png",
+                "resources/images/enforcer.png",
                 "Defence",
-                20,
+                22,
             ),
             Card(
                 "Guardian",
@@ -215,59 +286,32 @@ class GameScreen:
                 18,
             ),
             Card(
-                "Gunner",
+                "Engineer",
                 self.text_font,
                 self.small_font,
                 "SH",
-                "resources/images/guardian.png",
+                "resources/images/engineer.png",
                 "Defence",
-                25,
-            ),
-            Card(
-                "Bunker",
-                self.text_font,
-                self.small_font,
-                "SH",
-                "resources/images/guardian.png",
-                "Defence",
-                12,
+                20,
             ),
             # Support
             Card(
-                "Supply Runner",
+                "Chemist",
                 self.text_font,
                 self.small_font,
                 "HP",
-                "resources/images/guardian.png",
+                "resources/images/chemist.png",
                 "Support",
                 22,
-            ),
-            Card(
-                "Field Medic",
-                self.text_font,
-                self.small_font,
-                "HP",
-                "resources/images/guardian.png",
-                "Support",
-                20,
-            ),
-            Card(
-                "Survivor",
-                self.text_font,
-                self.small_font,
-                "HP",
-                "resources/images/guardian.png",
-                "Support",
-                15,
             ),
             Card(
                 "Scav",
                 self.text_font,
                 self.small_font,
                 "HP",
-                "resources/images/guardian.png",
+                "resources/images/scav.png",
                 "Support",
-                18,
+                20,
             ),
             Card(
                 "Doctor",
@@ -276,10 +320,11 @@ class GameScreen:
                 "HP",
                 "resources/images/doctor.png",
                 "Support",
-                25,
+                26,
             ),
         ]
 
+    # Creates a starting hand of 2 Offence cards, 2 Defence cards and 1 Support card for both players and removes these cards from the deck
     def create_starting_hand(self):
 
         hand = []
@@ -297,41 +342,59 @@ class GameScreen:
 
     def render(self, events: list[Event]) -> GameState:
 
+        # Allows the player to return to the "Main Menu" screen if a click has been detected on the appropriate button in the game over overlay
         if self.game_over:
             for event in events:
                 if event.type == MOUSEBUTTONUP:
                     if self.menu_button_rect.collidepoint(event.pos):
                         return GameState.MAIN_MENU_SCREEN
 
-        self.screen.blit(self.background, (0, 0))
+        # Drawing the background image onto the screen
+        self.screen.blit(
+            self.background, (0, 0)
+        )  # (0, 0) refers to the top-left position of the screen
 
+        # Drawing the same semi-transparent overlay that is in other screens
         overlay = pygame.Surface((self.screen_width, self.screen_height))
-        overlay.set_alpha(120)
+        overlay.set_alpha(
+            120
+        )  # Even though this is not more of a functional screen but rather an actual game screen, the overlay is kept darker
+        # this is because of the amount of UI on the screen that the user needs to be focused on
         overlay.fill((0, 0, 0))
-        self.screen.blit(overlay, (0, 0))
+        self.screen.blit(
+            overlay, (0, 0)
+        )  # (0, 0) refers to the top-left position of the screen
 
+        # Creating the "Pause"/"Resume" and "Quit" buttons
         label = "Resume" if self.paused else "Pause"
         self.pause_button = create_button(self.title_font, label, 140, 50)
         self.quit_button = create_button(self.title_font, "Quit", 140, 50)
 
+        # Positioning the buttons
         pause_x = 40
         pause_y = self.screen_height - self.pause_button.get_height() - 80
-
         quit_x = pause_x
         quit_y = pause_y + self.pause_button.get_height() + 10
 
+        # Drawing them onto the screen
         self.screen.blit(self.pause_button, (pause_x, pause_y))
         self.screen.blit(self.quit_button, (quit_x, quit_y))
 
+        # Processing all input events made by the user
         for event in events:
 
             if event.type == MOUSEBUTTONUP and not self.game_over:
 
+                # Checking if the user's mouse if inside the button's surface/rectangle and if it has been clicked on
                 if mouse_inside(event, self.pause_button, pause_x, pause_y):
                     self.paused = not self.paused
+                    # If the "Pause" button is clicked the pause overlay displays onto the user's screen,
+                    # and all interaction with the screen is blocked until the user clicks "Resume"
 
+                # Checking if the user's mouse if inside the button's surface/rectangle and if it has been clicked on
                 if mouse_inside(event, self.quit_button, quit_x, quit_y):
                     return GameState.MAIN_MENU_SCREEN
+                    # If the "Quit" button is clicked the game stops and the user gets redirected to the "Main Menu" screen
 
             if event.type == pygame.KEYDOWN:
 
@@ -371,19 +434,20 @@ class GameScreen:
                             self.turn_phase = "player_animating"
                             self.animation_timer = 0
 
-                elif self.turn_phase == "player_wait_draw":
-
-                    if event.key == pygame.K_d:
+                    elif event.key == pygame.K_d and self.turn_phase == "player_idle":
                         self.turn_phase = "player_draw"
 
+        # Defining the card dimensions for positioning them in the hand and deck visuals
         card_width = 100
         card_gap = 15
 
+        # Positioning the stacked deck of cards onto the screen
         deck_x = self.screen_width // 6
         deck_y = 375
+        # Defining a clickable area for the deck
+        deck_rect = pygame.Rect(deck_x - 50, deck_y - 70, 100, 140)
 
-        # deck visuals
-
+        # Rendering a stacked visual of the deck of cards using their rotated card backs
         for i, angle in enumerate([-15, -8, 0, 8, 15][::-1]):
             if self.deck:
                 card = self.deck[-(i + 1)] if i < len(self.deck) else self.deck[0]
@@ -397,19 +461,23 @@ class GameScreen:
             rect = rotated.get_rect(center=(deck_x, deck_y))
             self.screen.blit(rotated, (rect.x + i, rect.y - i))
 
+        # Rendering both players details
         self.opponent_player.render(self.screen, x=200, y=100, hide_hand=True)
         self.our_player.render(self.screen, x=200, y=480, hide_hand=False)
 
+        # Getting the position of the user's mouse for hover detection later
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
+        # When the user's mouse is on a card it gets englared to provide a hovering effect for better visual clarity of the card
         if self.turn_phase == "player_idle" and not self.paused:
             for card, x, y in self.our_player.card_positions:
                 rect = pygame.Rect(x, y, 100, 140)
                 if rect.collidepoint(mouse_x, mouse_y):
-                    card.render(self.screen, x, y, scale=2.2)
+                    self.render_on_top = (card, x, y, 2.2)
                     break
 
-        # State Machine
+        # "State Machine" which controls all gameplay phases including their animations, turns and transitions
+        # Each "turn_phase" represents a different stage of the game flow
 
         if not self.game_over and not self.paused:
 
@@ -417,7 +485,11 @@ class GameScreen:
                 self.animation_timer += 1
 
                 if self.animation_timer >= 15:
+
                     if self.deal_index < 5:
+
+                        self.sfx_deal.play()
+
                         self.our_player.hand.append(
                             self.our_starting_hand[self.deal_index]
                         )
@@ -435,6 +507,14 @@ class GameScreen:
                     if event.type == MOUSEBUTTONUP:
                         mouse_x, mouse_y = event.pos
 
+                        # Clicking the deck to draw a card
+                        if (
+                            deck_rect.collidepoint(event.pos)
+                            and len(self.our_player.hand) < 5
+                        ):
+                            self.turn_phase = "player_draw"
+                            break
+
                         for card, x, y in self.our_player.card_positions:
                             rect = pygame.Rect(x, y, 100, 140)
 
@@ -450,6 +530,11 @@ class GameScreen:
                                 break
 
             elif self.turn_phase == "player_animating":
+
+                if self.animation_timer == 0:
+                    self.sfx_shuffle.play()
+                    self.sfx_played = False
+
                 self.animation_timer += 1
                 progress = min(self.animation_timer / self.animation_duration, 1)
 
@@ -466,13 +551,21 @@ class GameScreen:
                     self.animation_timer = 0
 
             elif self.turn_phase == "player_showing":
+
+                if not self.sfx_played:
+                    self.game_manager.play_card(
+                        self.our_player, self.opponent_player, self.active_card
+                    )
+                    self.sfx_played = True
+
                 self.animation_timer += 1
+
                 cx = self.screen_width // 2 - 50
                 cy = self.screen_height // 2 - 70
 
                 self.render_on_top = (self.active_card, cx, cy, 2.2)
 
-                if self.animation_timer >= 35:
+                if self.animation_timer >= 50:
                     self.turn_phase = "player_pause"
                     self.animation_timer = 0
 
@@ -484,14 +577,16 @@ class GameScreen:
 
                 self.render_on_top = (self.active_card, cx, cy, 2.2)
 
-                if self.animation_timer >= 30:
-                    self.game_manager.play_card(
-                        self.our_player, self.opponent_player, self.active_card
-                    )
+                if self.animation_timer >= 45:
+
                     self.turn_phase = "player_to_deck"
                     self.animation_timer = 0
 
             elif self.turn_phase == "player_to_deck":
+
+                if self.animation_timer == 0:
+                    self.sfx_shuffle.play()
+
                 self.animation_timer += 1
                 progress = min(self.animation_timer / self.animation_duration, 1)
 
@@ -512,9 +607,10 @@ class GameScreen:
 
                     self.turn_phase = "turn_transition"
                     self.transition_text = "Opponent's Turn"
-                    self.next_turn_phase = (
-                        "ai_animating" if self.first_round else "ai_draw_anim"
-                    )
+                    if self.first_round:
+                        self.next_turn_phase = "ai_animating"
+                    else:
+                        self.next_turn_phase = "ai_thinking"
                     self.transition_timer = 0
 
                     self.draw_timer = 0
@@ -548,22 +644,23 @@ class GameScreen:
             elif self.turn_phase == "ai_draw_anim":
 
                 if self.draw_timer == 0:
-                    self.ai_drawn_card = None
+                    self.sfx_shuffle.play()
 
                 if self.ai_drawn_card is None:
-                    available = [
-                        c
-                        for c in self.deck
-                        if c.category == self.ai_last_played_category
-                    ]
+                    difficulty = "casual"
+                    if self.mode == "competitive":
+                        difficulty = self.rank
 
-                    if not available:
-                        available = self.deck
+                    self.ai_drawn_card = self.draw_card(
+                        self.ai_last_played_category, difficulty
+                    )
 
-                    if available:
-                        self.ai_drawn_card = random.choice(available)
-                        self.deck.remove(self.ai_drawn_card)
-                        self.draw_pos = (deck_x, deck_y)
+                    if self.ai_drawn_card is None:
+                        self.turn_phase = "ai_thinking"
+                        self.draw_timer = 0
+                        return GameState.GAME_SCREEN
+
+                    self.draw_pos = (deck_x, deck_y)
 
                 self.draw_timer += 1
                 progress = min(self.draw_timer / 55, 1)
@@ -621,6 +718,9 @@ class GameScreen:
 
             elif self.turn_phase == "ai_draw_to_hand":
 
+                if self.draw_timer == 0:
+                    self.sfx_shuffle.play()
+
                 self.draw_timer += 1
                 progress = min(self.draw_timer / 55, 1)
 
@@ -645,20 +745,57 @@ class GameScreen:
                         self.opponent_player.hand.append(self.ai_drawn_card)
                     self.ai_drawn_card = None
 
-                    self.turn_phase = "ai_thinking"
+                    self.current_turn = "player"
+
+                    self.turn_phase = "turn_transition"
+                    self.transition_text = "Your Turn"
+                    self.next_turn_phase = "player_idle"
+
+                    self.draw_timer = 0
                     self.animation_timer = 0
 
             elif self.turn_phase == "ai_thinking":
 
                 self.animation_timer += 1
 
-                if self.animation_timer >= 30:
-                    self.turn_phase = "ai_animating"
+                if self.animation_timer >= 45:
+
+                    difficulty = "casual"
+                    if self.mode == "competitive":
+                        difficulty = self.rank
+
+                    draw_chance = {
+                        "casual": 0.3,
+                        "bronze": 0.25,
+                        "silver": 0.2,
+                        "gold": 0.15,
+                    }.get(difficulty, 0.25)
+
+                    if len(self.opponent_player.hand) >= 5:
+                        self.turn_phase = "ai_animating"
+
+                    else:
+
+                        if len(self.opponent_player.hand) < 3:
+                            should_draw = True
+                        else:
+
+                            should_draw = random.random() < draw_chance
+
+                        if should_draw:
+                            self.turn_phase = "ai_draw_anim"
+                        else:
+                            self.turn_phase = "ai_animating"
+
                     self.animation_timer = 0
 
             # AI Play
 
             elif self.turn_phase == "ai_animating":
+
+                if self.animation_timer == 0:
+                    self.sfx_shuffle.play()
+                    self.sfx_played = False
 
                 if self.ai_card is None:
 
@@ -671,9 +808,9 @@ class GameScreen:
                         self.opponent_player, self.our_player, difficulty
                     )
 
-                    # GET POSITION BEFORE REMOVAL
                     index = self.opponent_player.hand.index(self.ai_card)
 
+                    # Recalculating card layout for opponent hand positioning during its animations
                     card_width = 100
                     card_gap = 15
 
@@ -688,12 +825,11 @@ class GameScreen:
 
                     self.ai_card_pos = (card_x, card_y)
 
-                    # REMOVE IMMEDIATELY
                     self.opponent_player.hand.remove(self.ai_card)
 
                     self.ai_last_played_category = self.ai_card.category
 
-                    self.animation_timer = 0  # reset properly
+                    self.animation_timer = 0
 
                 self.animation_timer += 1
                 progress = min(self.animation_timer / self.animation_duration, 1)
@@ -712,6 +848,12 @@ class GameScreen:
 
             elif self.turn_phase == "ai_showing":
 
+                if not self.sfx_played:
+                    self.game_manager.play_card(
+                        self.opponent_player, self.our_player, self.ai_card
+                    )
+                    self.sfx_played = True
+
                 self.animation_timer += 1
 
                 cx = self.screen_width // 2 - 50
@@ -719,7 +861,7 @@ class GameScreen:
 
                 self.render_on_top = (self.ai_card, cx, cy, 2.2)
 
-                if self.animation_timer >= 35:
+                if self.animation_timer >= 50:
                     self.turn_phase = "ai_pause"
                     self.animation_timer = 0
 
@@ -732,14 +874,15 @@ class GameScreen:
 
                 self.render_on_top = (self.ai_card, cx, cy, 2.2)
 
-                if self.animation_timer >= 30:
-                    self.game_manager.play_card(
-                        self.opponent_player, self.our_player, self.ai_card
-                    )
+                if self.animation_timer >= 45:
+
                     self.turn_phase = "ai_to_deck"
                     self.animation_timer = 0
 
             elif self.turn_phase == "ai_to_deck":
+
+                if self.animation_timer == 0:
+                    self.sfx_shuffle.play()
 
                 self.animation_timer += 1
                 progress = min(self.animation_timer / self.animation_duration, 1)
@@ -764,33 +907,33 @@ class GameScreen:
 
                     self.turn_phase = "turn_transition"
                     self.transition_text = "Your Turn"
-                    self.next_turn_phase = "player_wait_draw"
+                    self.next_turn_phase = "player_idle"
                     self.draw_timer = 0
                     self.drawn_card = None
                     self.animation_timer = 0
-
-            elif self.turn_phase == "player_wait_draw":
-                pass
 
             # Player Draw
 
             elif self.turn_phase == "player_draw":
 
+                if len(self.our_player.hand) >= 5:
+                    return GameState.GAME_SCREEN
+
                 if self.drawn_card is None:
 
-                    available = [
-                        c for c in self.deck if c.category == self.last_played_category
-                    ]
+                    difficulty = "casual"
+                    if self.mode == "competitive":
+                        difficulty = self.rank
 
-                    if not available:
-                        available = self.deck
+                    self.drawn_card = self.draw_card(
+                        self.last_played_category, difficulty
+                    )
 
-                    if available:
-                        self.drawn_card = random.choice(available)
-                        self.deck.remove(self.drawn_card)
+                    if self.drawn_card is None:
+                        return GameState.GAME_SCREEN
 
-                        self.draw_pos = (deck_x, deck_y)
-                        self.draw_timer = 0
+                    self.draw_pos = (deck_x, deck_y)
+                    self.draw_timer = 0
 
                 cx = self.screen_width // 2 - 50
                 cy = self.screen_height // 2 - 70
@@ -805,6 +948,9 @@ class GameScreen:
                 self.turn_phase = "player_draw_anim"
 
             elif self.turn_phase == "player_draw_anim":
+
+                if self.draw_timer == 0:
+                    self.sfx_shuffle.play()
 
                 self.draw_timer += 1
                 progress = min(self.draw_timer / 55, 1)
@@ -841,6 +987,9 @@ class GameScreen:
 
             elif self.turn_phase == "player_draw_to_hand":
 
+                if self.draw_timer == 0:
+                    self.sfx_shuffle.play()
+
                 self.draw_timer += 1
                 progress = min(self.draw_timer / 55, 1)
 
@@ -865,10 +1014,29 @@ class GameScreen:
                         self.our_player.hand.append(self.drawn_card)
                     self.drawn_card = None
 
-                    self.turn_phase = "player_idle"
+                    self.current_turn = "ai"
 
-        # Draw On Top
+                    self.turn_phase = "turn_transition"
+                    self.transition_text = "Opponent's Turn"
+                    self.next_turn_phase = "ai_thinking"
 
+            if self.turn_phase == "player_idle":
+                font = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 25)
+                text = font.render(
+                    "1-5: Play Card   |   D: Draw", True, (255, 255, 255)
+                )
+
+                self.screen.blit(
+                    text,
+                    (
+                        self.screen_width // 2 - text.get_width() // 2,
+                        650,
+                    ),
+                )
+
+        # End of "State Machine", everything has been processed above
+
+        # Rendering hovered or animating card in top of all other elements to ensure clear visibility
         if self.render_on_top:
             card, x, y, scale = self.render_on_top
 
@@ -884,7 +1052,7 @@ class GameScreen:
 
         if self.turn_phase == "turn_transition":
 
-            font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 80)
+            font = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 80)
 
             color = (
                 (0, 255, 0) if self.transition_text == "Your Turn" else (255, 80, 80)
@@ -906,7 +1074,7 @@ class GameScreen:
 
             turn_text = "Your Turn" if is_player_turn else "Opponent's Turn"
 
-            font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 40)
+            font = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 40)
             color = (0, 255, 0) if is_player_turn else (255, 80, 80)
 
             text_surface = font.render(turn_text, True, color)
@@ -919,29 +1087,18 @@ class GameScreen:
                 ),
             )
 
-            if self.turn_phase == "player_wait_draw":
-                font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 30)
-                text = font.render("press D to draw", True, (255, 255, 255))
-
-                self.screen.blit(
-                    text,
-                    (
-                        self.screen_width // 2 - text.get_width() // 2,
-                        self.screen_height // 2 + 40,
-                    ),
-                )
-
-            mode_font = pygame.font.Font("resources/fonts/Apocalypse.ttf")
+            mode_font = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf")
 
             mode_text = self.mode
 
             if self.mode == "competitive" and self.rank:
                 mode_text += f" ({self.rank})"
 
-            mode_surface = mode_font.render(mode_text, True, (0, 0, 0))
+            mode_surface = mode_font.render(mode_text, True, (255, 255, 255))
 
             self.screen.blit(mode_surface, (20, 20))
 
+        # Processing and calculating the end of the game results and rewards
         if not self.game_over:
             result = self.game_manager.check_game_over()
 
@@ -960,7 +1117,7 @@ class GameScreen:
 
             self.xp += self.xp_gained
 
-            self.level, self.xp_to_next = calculate_level(self.xp)
+            self.level, self.xp_to_next = self.game_manager.calculate_level(self.xp)
 
             db = Database()
             db.update_account(
@@ -980,7 +1137,7 @@ class GameScreen:
             overlay.fill((0, 0, 0))
             self.screen.blit(overlay, (0, 0))
 
-            font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 80)
+            font = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 80)
             text = font.render("Paused", True, (255, 255, 255))
 
             self.screen.blit(
@@ -991,16 +1148,15 @@ class GameScreen:
                 ),
             )
 
+        # Rendering the game over screen with results and rewards as an overlay on the user's screen
         if self.game_over:
 
-            # dark transparent overlay
             overlay = pygame.Surface((self.screen_width, self.screen_height))
             overlay.set_alpha(180)
             overlay.fill((0, 0, 0))
             self.screen.blit(overlay, (0, 0))
 
-            # main result text
-            font_big = pygame.font.Font("resources/fonts/Apocalypse.ttf", 80)
+            font_big = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 80)
 
             if self.game_result == "win":
                 result_text = "YOU WIN"
@@ -1020,7 +1176,7 @@ class GameScreen:
             )
 
             # XP text
-            font_small = pygame.font.Font("resources/fonts/Apocalypse.ttf", 40)
+            font_small = pygame.font.Font(FONTS_PATH // "Apocalypse.ttf", 40)
 
             xp_surface = font_small.render(
                 f"XP Gained: {self.xp_gained}", True, (255, 255, 255)
@@ -1037,7 +1193,7 @@ class GameScreen:
             pygame.draw.rect(self.screen, (40, 40, 40), self.menu_button_rect)
             pygame.draw.rect(self.screen, (255, 255, 255), self.menu_button_rect, 3)
 
-            font = pygame.font.Font("resources/fonts/Apocalypse.ttf", 30)
+            font = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 30)
             text_surface = font.render("MAIN MENU", True, (255, 255, 255))
 
             self.screen.blit(
@@ -1048,7 +1204,9 @@ class GameScreen:
                 ),
             )
 
+        # Rendering these buttons on top of everything else on the screen so that animations and overlays don't cover them
         self.screen.blit(self.pause_button, (pause_x, pause_y))
         self.screen.blit(self.quit_button, (quit_x, quit_y))
 
+        # Returning the next game state so that the main game loop can handle screen transitions and update the display
         return GameState.GAME_SCREEN
