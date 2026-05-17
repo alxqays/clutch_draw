@@ -259,11 +259,19 @@ class GameSetupScreen:
                         if not self.selected_rank:
                             next_state = GameState.GAME_SETUP_SCREEN
 
-                # Storing the final confirmed selections so that the appropriate game can activate
-                self.final_mode = self.selected_mode
-                self.final_rank = self.selected_rank
+                        else:
+                            # Storing the final confirmed selections so that the appropriate game can activate
+                            self.final_mode = self.selected_mode
+                            self.final_rank = self.selected_rank
 
-                next_state = GameState.GAME_SCREEN
+                            next_state = GameState.GAME_SCREEN
+
+                    else:
+                        # Starting casual mode immediately as no rank selection is required
+                        self.final_mode = self.selected_mode
+                        self.final_rank = None
+
+                        next_state = GameState.GAME_SCREEN
 
         # Returning the next game state so that the main game loop can handle the screen transitions and update the display
         return next_state

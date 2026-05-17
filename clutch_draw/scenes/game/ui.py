@@ -74,6 +74,9 @@ class GameScreen:
         # Tracking whether the sfx for the played card has already been triggered or not
         self.sfx_played = False
 
+        # Tracking whether the effect for the played card has already been triggered or not
+        self.card_effect_applied = False
+
         # Creating the deck and loading the card back images for each category into it
         self.deck = self.create_deck()
         self.card_backs = {
@@ -534,6 +537,7 @@ class GameScreen:
                 if self.animation_timer == 0:
                     self.sfx_shuffle.play()
                     self.sfx_played = False
+                    self.card_effect_applied = False
 
                 self.animation_timer += 1
                 progress = min(self.animation_timer / self.animation_duration, 1)
@@ -552,11 +556,11 @@ class GameScreen:
 
             elif self.turn_phase == "player_showing":
 
-                if not self.sfx_played:
+                if not self.card_effect_applied:
                     self.game_manager.play_card(
                         self.our_player, self.opponent_player, self.active_card
                     )
-                    self.sfx_played = True
+                    self.card_effect_applied = True
 
                 self.animation_timer += 1
 
@@ -796,6 +800,7 @@ class GameScreen:
                 if self.animation_timer == 0:
                     self.sfx_shuffle.play()
                     self.sfx_played = False
+                    self.card_effect_applied = False
 
                 if self.ai_card is None:
 
@@ -848,11 +853,11 @@ class GameScreen:
 
             elif self.turn_phase == "ai_showing":
 
-                if not self.sfx_played:
+                if not self.card_effect_applied:
                     self.game_manager.play_card(
                         self.opponent_player, self.our_player, self.ai_card
                     )
-                    self.sfx_played = True
+                    self.card_effect_applied = True
 
                 self.animation_timer += 1
 
@@ -1176,7 +1181,7 @@ class GameScreen:
             )
 
             # XP text
-            font_small = pygame.font.Font(FONTS_PATH // "Apocalypse.ttf", 40)
+            font_small = pygame.font.Font(FONTS_PATH / "Apocalypse.ttf", 40)
 
             xp_surface = font_small.render(
                 f"XP Gained: {self.xp_gained}", True, (255, 255, 255)

@@ -238,10 +238,10 @@ class GameManager:
         if (
             self.player.health <= 0
         ):  # Using <= 0 rather than just == 0 ensures robustness in case health values drop below zero due to future changes or errors
-            return "Loss"
+            return "loss"
         # Checking if the opponent's health has reached 0, meaning the player has won
         elif self.opponent.health <= 0:
-            return "Win"
+            return "win"
         # If neither player has reached 0 health, the game is still ongoing
         return None
 
